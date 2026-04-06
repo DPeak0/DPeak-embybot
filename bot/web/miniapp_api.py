@@ -158,14 +158,17 @@ async def miniapp_search(q: str = "", request: Request = None):
 async def miniapp_trending(request: Request):
     _get_tg_user(request)
     if not tmdb_api_key:
-        raise HTTPException(status_code=503, detail="TMDB API key not configured")
+        return JSONResponse({"results": [], "error": "TMDB未配置"})
     url = f"{TMDB_BASE}/trending/all/week"
     params = {"api_key": tmdb_api_key, "language": "zh-CN"}
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-            if resp.status != 200:
-                raise HTTPException(status_code=502, detail="TMDB API error")
-            data = await resp.json()
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=8)) as resp:
+                if resp.status != 200:
+                    return JSONResponse({"results": [], "error": "TMDB请求失败"})
+                data = await resp.json()
+    except Exception:
+        return JSONResponse({"results": [], "error": "TMDB网络不可达"})
     results = []
     for item in data.get("results", [])[:20]:
         media_type = item.get("media_type")
