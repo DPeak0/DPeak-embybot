@@ -35,7 +35,7 @@ from bot.web.miniapp_notify import check_in_emby_by_tmdb
 
 router = APIRouter(prefix="/miniapp", tags=["MiniApp"])
 
-TMDB_BASE = "https://api.themoviedb.org/3"
+TMDB_BASE = "https://api.tmdb.org/3"
 TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w300"
 
 # ── HTML 页面 ──────────────────────────────────────────────────────────────────
