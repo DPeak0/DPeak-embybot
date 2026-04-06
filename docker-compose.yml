@@ -1,0 +1,11 @@
+version: '3'
+services:
+  embyboss:
+    image: crpi-euihr92xl17baj83.cn-shenzhen.personal.cr.aliyuncs.com/dpeak/embyboos:latest
+    container_name: embyboss
+    restart: always
+    network_mode: host
+    volumes:
+      - ./config.json:/app/config.json
+      - ./log:/app/log
+      - ./logo.png:/app/logo.png
