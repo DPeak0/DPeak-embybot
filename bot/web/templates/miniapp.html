@@ -552,7 +552,11 @@ async function loadTrending() {
   try {
     const resp = await fetch('/miniapp/trending', { headers: apiHeaders() });
     const data = await resp.json();
-    renderMediaList(data.results || [], 'trendingList');
+    if (data.error || !data.results?.length) {
+      document.getElementById('trendingList').innerHTML = '<div class="empty"><i class="fa-solid fa-wifi-slash"></i>影视数据暂不可用</div>';
+      return;
+    }
+    renderMediaList(data.results, 'trendingList');
   } catch {
     document.getElementById('trendingList').innerHTML = '<div class="empty"><i class="fa-solid fa-wifi-slash"></i>加载失败</div>';
   }
