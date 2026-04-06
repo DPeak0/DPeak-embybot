@@ -15,4 +15,3 @@ from bot.modules.game import *
 from bot.web import *
 
 bot.run()
-# test
