@@ -9,4 +9,3 @@ __pycache__/
 log/
 config.json
 nginx/
-# hook test
