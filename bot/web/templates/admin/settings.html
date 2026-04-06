@@ -1,0 +1,437 @@
+{% extends "admin/layout.html" %}
+{% block title %}系统设置{% endblock %}
+{% block heading %}系统设置{% endblock %}
+
+{% block content %}
+<!-- 锚点导航 -->
+<div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.5rem;">
+  <a href="#sec-bot"    class="anchor-tag">Bot基础</a>
+  <a href="#sec-emby"   class="anchor-tag">Emby</a>
+  <a href="#sec-miniapp" class="anchor-tag">MiniApp</a>
+  <a href="#sec-reg"    class="anchor-tag">注册</a>
+  <a href="#sec-func"   class="anchor-tag">功能开关</a>
+  <a href="#sec-cost"   class="anchor-tag">积分消耗</a>
+  <a href="#sec-ops"    class="anchor-tag">运营参数</a>
+  <a href="#sec-quota"  class="anchor-tag">求片额度</a>
+  <a href="#sec-sched"  class="anchor-tag">计划任务</a>
+  <a href="#sec-filter" class="anchor-tag">客户端过滤</a>
+</div>
+
+<div style="max-width:48rem; display:flex; flex-direction:column; gap:1.5rem;">
+
+  <!-- ① Bot 基础信息 -->
+  <div id="sec-bot" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-robot" style="color:#e879a0;"></i> Bot 基础信息</h2>
+    <div class="grid-2">
+      <div style="grid-column:span 2;">
+        <label class="f-label">Bot 名称（只读）</label>
+        <input id="bot_name" type="text" disabled class="f-input" style="opacity:0.5;cursor:not-allowed;" />
+      </div>
+      <div>
+        <label class="f-label">积分货币名称（money）</label>
+        <input id="money" type="text" placeholder="石子" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">排行榜前缀（ranks_logo）</label>
+        <input id="ranks_logo" type="text" placeholder="SAKURA" class="f-input" />
+      </div>
+      <div style="grid-column:span 2;">
+        <label class="f-label">Bot 头像 URL（bot_photo）</label>
+        <input id="bot_photo" type="url" placeholder="https://..." class="f-input" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button onclick="saveGroup(['money','ranks_logo','bot_photo'])" class="btn-save">保存</button>
+    </div>
+  </div>
+
+  <!-- ② Emby 配置 -->
+  <div id="sec-emby" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-server" style="color:#e879a0;"></i> Emby 配置</h2>
+    <div style="display:flex; flex-direction:column; gap:0.75rem;">
+      <div>
+        <label class="f-label">Emby 服务器地址（emby_url）</label>
+        <input id="emby_url" type="text" placeholder="http://127.0.0.1:8096" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">Emby 播放地址（emby_line）</label>
+        <input id="emby_line" type="text" placeholder="https://play.example.com" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">白名单专属线路（emby_whitelist_line）</label>
+        <input id="emby_whitelist_line" type="text" placeholder="留空则不启用" class="f-input" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button onclick="saveGroup(['emby_url','emby_line','emby_whitelist_line'])" class="btn-save">保存</button>
+    </div>
+  </div>
+
+  <!-- ③ MiniApp / TMDB -->
+  <div id="sec-miniapp" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-rocket" style="color:#e879a0;"></i> MiniApp / TMDB</h2>
+    <div style="display:flex; flex-direction:column; gap:0.75rem;">
+      <div>
+        <label class="f-label">MiniApp 对外地址（miniapp_url）</label>
+        <input id="miniapp_url" type="url" placeholder="https://your.domain.com" class="f-input" />
+        <p style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;">Telegram MiniApp 要求 HTTPS，需要反代到 :8838</p>
+      </div>
+      <div>
+        <label class="f-label">TMDB API Key（tmdb_api_key）</label>
+        <input id="tmdb_api_key" type="text" placeholder="TMDB v3 API Key" class="f-input" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button onclick="saveGroup(['miniapp_url','tmdb_api_key'])" class="btn-save">保存</button>
+    </div>
+  </div>
+
+  <!-- ④ 注册设置 -->
+  <div id="sec-reg" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-door-open" style="color:#e879a0;"></i> 注册设置</h2>
+    <div class="toggle-row" style="margin-bottom:1rem;">
+      <div>
+        <p class="toggle-name">自由注册开关（stat）</p>
+        <p class="toggle-desc">开启后允许用户使用注册码注册账号</p>
+      </div>
+      <button id="stat_btn" onclick="toggleBool('stat','stat_btn')" class="tbtn">加载中…</button>
+    </div>
+    <div class="grid-2">
+      <div>
+        <label class="f-label">注册总人数限制（all_user）</label>
+        <input id="all_user" type="number" min="0" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">注册账号有效天数（open_us）</label>
+        <input id="open_us" type="number" min="1" class="f-input" />
+      </div>
+    </div>
+    <p style="font-size:0.75rem; color:#64748b; margin:0.75rem 0 0.5rem; font-weight:500;">分级人数上限（0 = 不限制）</p>
+    <div class="grid-2" style="margin-bottom:0;">
+      <div>
+        <label class="f-label">🔵 普通用户上限（all_user_b）</label>
+        <input id="all_user_b" type="number" min="0" class="f-input" placeholder="0=不限制" />
+      </div>
+      <div>
+        <label class="f-label">🟢 公益用户上限（all_user_e）</label>
+        <input id="all_user_e" type="number" min="0" class="f-input" placeholder="0=不限制" />
+      </div>
+      <div>
+        <label class="f-label">♾ 白名单上限（all_user_a）</label>
+        <input id="all_user_a" type="number" min="0" class="f-input" placeholder="0=不限制" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button onclick="saveGroup(['all_user','open_us','all_user_b','all_user_e','all_user_a'], true)" class="btn-save">保存</button>
+    </div>
+  </div>
+
+  <!-- ⑤ 功能开关 -->
+  <div id="sec-func" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-toggle-on" style="color:#e879a0;"></i> 功能开关</h2>
+    <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem;">
+      <div class="toggle-row">
+        <div><p class="toggle-name">签到功能（checkin）</p><p class="toggle-desc">开启后用户可每日签到获取积分</p></div>
+        <button id="checkin_btn" onclick="toggleBool('checkin','checkin_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">兑换解封（exchange）</p><p class="toggle-desc">开启后用户可用积分兑换解除封禁</p></div>
+        <button id="exchange_btn" onclick="toggleBool('exchange','exchange_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">兑换白名单（whitelist）</p><p class="toggle-desc">开启后用户可用积分兑换白名单</p></div>
+        <button id="whitelist_btn" onclick="toggleBool('whitelist','whitelist_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">邀请注册（invite）</p><p class="toggle-desc">开启后用户可用积分兑换邀请注册码</p></div>
+        <button id="invite_btn" onclick="toggleBool('invite','invite_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">退群自动封禁（leave_ban）</p><p class="toggle-desc">用户退出群组后自动封禁账号</p></div>
+        <button id="leave_ban_btn" onclick="toggleBool('leave_ban','leave_ban_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">观影奖励结算（uplays）</p><p class="toggle-desc">开启后根据观影时长结算积分奖励</p></div>
+        <button id="uplays_btn" onclick="toggleBool('uplays','uplays_btn')" class="tbtn">加载中…</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <label class="f-label">签到权限等级（checkin_lv）</label>
+        <select id="checkin_lv" class="f-input">
+          <option value="a">a - 白名单</option>
+          <option value="b">b - 普通用户</option>
+          <option value="e">e - 公益用户</option>
+          <option value="d">d - 所有用户</option>
+        </select>
+      </div>
+      <div>
+        <label class="f-label">邀请注册权限等级（invite_lv）</label>
+        <select id="invite_lv" class="f-input">
+          <option value="a">a - 白名单</option>
+          <option value="b">b - 普通用户</option>
+          <option value="e">e - 公益用户</option>
+          <option value="d">d - 所有用户</option>
+        </select>
+      </div>
+    </div>
+    <div class="save-row">
+      <button onclick="saveGroup(['checkin_lv','invite_lv'])" class="btn-save">保存等级设置</button>
+    </div>
+  </div>
+
+  <!-- ⑥ 积分消耗设置 -->
+  <div id="sec-cost" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-coins" style="color:#e879a0;"></i> 积分消耗设置</h2>
+    <div class="grid-2">
+      <div>
+        <label class="f-label">签到奖励最小值（checkin_reward_min）</label>
+        <input id="checkin_reward_min" type="number" min="0" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">签到奖励最大值（checkin_reward_max）</label>
+        <input id="checkin_reward_max" type="number" min="0" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">兑换解封消耗（exchange_cost）</label>
+        <input id="exchange_cost" type="number" min="0" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">兑换白名单消耗（whitelist_cost）</label>
+        <input id="whitelist_cost" type="number" min="0" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">邀请注册消耗（invite_cost）</label>
+        <input id="invite_cost" type="number" min="0" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">排行榜查看消耗（srank_cost）</label>
+        <input id="srank_cost" type="number" min="0" class="f-input" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button onclick="saveGroup(['checkin_reward_min','checkin_reward_max','exchange_cost','whitelist_cost','invite_cost','srank_cost'], true)" class="btn-save">保存</button>
+    </div>
+  </div>
+
+  <!-- ⑦ 运营参数 -->
+  <div id="sec-ops" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-sliders" style="color:#e879a0;"></i> 运营参数</h2>
+    <div class="grid-2" style="margin-bottom:0.75rem;">
+      <div>
+        <label class="f-label">赠送资格天数（kk_gift_days）</label>
+        <input id="kk_gift_days" type="number" min="1" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">活跃检测天数（activity_check_days）</label>
+        <input id="activity_check_days" type="number" min="1" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">封存账号天数（freeze_days）</label>
+        <input id="freeze_days" type="number" min="0" class="f-input" />
+        <p style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;">到期封禁后再过此天数删除账号</p>
+      </div>
+    </div>
+    <div class="toggle-row" style="margin-bottom:1rem;">
+      <div><p class="toggle-name">皮套人过滤（fuxx_pitao）</p></div>
+      <button id="fuxx_pitao_btn" onclick="toggleBool('fuxx_pitao','fuxx_pitao_btn')" class="tbtn">加载中…</button>
+    </div>
+    <div class="save-row">
+      <button onclick="saveGroup(['kk_gift_days','activity_check_days','freeze_days'], true)" class="btn-save">保存</button>
+    </div>
+  </div>
+
+  <!-- ⑧ 求片额度 -->
+  <div id="sec-quota" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-film" style="color:#e879a0;"></i> 求片额度设置</h2>
+    <p style="font-size:0.75rem; color:#94a3b8; margin-bottom:1rem;">设为 0 表示该等级禁止求片；额度按周期天数滚动计算</p>
+    <div class="grid-2">
+      <div>
+        <label class="f-label">白名单额度（request_quota_a）</label>
+        <input id="request_quota_a" type="number" min="0" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">普通用户额度（request_quota_b）</label>
+        <input id="request_quota_b" type="number" min="0" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">公益用户额度（request_quota_e）</label>
+        <input id="request_quota_e" type="number" min="0" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">重置周期天数（request_quota_days）</label>
+        <input id="request_quota_days" type="number" min="1" class="f-input" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button onclick="saveGroup(['request_quota_a','request_quota_b','request_quota_e','request_quota_days'], true)" class="btn-save">保存</button>
+    </div>
+  </div>
+
+  <!-- ⑨ 计划任务 -->
+  <div id="sec-sched" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-clock" style="color:#e879a0;"></i> 计划任务</h2>
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+      <div class="toggle-row">
+        <div><p class="toggle-name">到期检查（check_ex）</p><p class="toggle-desc">定时检查用户账号是否到期并封禁/删除</p></div>
+        <button id="schedall_check_ex_btn" onclick="toggleBool('schedall_check_ex','schedall_check_ex_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">低活跃封禁（low_activity）</p><p class="toggle-desc">定时封禁低活跃用户（需配合到期检查）</p></div>
+        <button id="schedall_low_activity_btn" onclick="toggleBool('schedall_low_activity','schedall_low_activity_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">日排行榜（dayrank）</p><p class="toggle-desc">每天定时发送日排行榜消息</p></div>
+        <button id="schedall_dayrank_btn" onclick="toggleBool('schedall_dayrank','schedall_dayrank_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">周排行榜（weekrank）</p><p class="toggle-desc">每周定时发送周排行榜消息</p></div>
+        <button id="schedall_weekrank_btn" onclick="toggleBool('schedall_weekrank','schedall_weekrank_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">日播放排行（dayplayrank）</p><p class="toggle-desc">每天定时发送播放时长排行</p></div>
+        <button id="schedall_dayplayrank_btn" onclick="toggleBool('schedall_dayplayrank','schedall_dayplayrank_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">周播放排行（weekplayrank）</p><p class="toggle-desc">每周定时发送播放时长排行</p></div>
+        <button id="schedall_weekplayrank_btn" onclick="toggleBool('schedall_weekplayrank','schedall_weekplayrank_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">数据库备份（backup_db）</p><p class="toggle-desc">定时自动备份数据库</p></div>
+        <button id="schedall_backup_db_btn" onclick="toggleBool('schedall_backup_db','schedall_backup_db_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div><p class="toggle-name">分区权限检查（partition_check）</p><p class="toggle-desc">定时检查分区通行码权限</p></div>
+        <button id="schedall_partition_check_btn" onclick="toggleBool('schedall_partition_check','schedall_partition_check_btn')" class="tbtn">加载中…</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑩ 客户端过滤 -->
+  <div id="sec-filter" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-shield-halved" style="color:#e879a0;"></i> 客户端过滤</h2>
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+      <div class="toggle-row">
+        <div>
+          <p class="toggle-name">断开违规客户端会话（client_filter_terminate_session）</p>
+          <p class="toggle-desc">检测到违规客户端时自动踢出会话</p>
+        </div>
+        <button id="client_filter_terminate_session_btn" onclick="toggleBool('client_filter_terminate_session','client_filter_terminate_session_btn')" class="tbtn">加载中…</button>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <p class="toggle-name">封禁违规用户（client_filter_block_user）</p>
+          <p class="toggle-desc">检测到违规客户端时自动封禁对应 Emby 用户</p>
+        </div>
+        <button id="client_filter_block_user_btn" onclick="toggleBool('client_filter_block_user','client_filter_block_user_btn')" class="tbtn">加载中…</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .anchor-tag  { padding:0.25rem 0.75rem; background:#334155; color:#cbd5e1; border-radius:9999px; font-size:0.75rem; text-decoration:none; transition:background .15s; }
+  .anchor-tag:hover { background:#475569; color:#fff; }
+  .sec-h2      { font-size:0.9375rem; font-weight:600; color:#e2e8f0; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem; }
+  .f-label     { display:block; font-size:0.8125rem; font-weight:500; color:#cbd5e1; margin-bottom:0.375rem; }
+  .f-input     { width:100%; background:rgba(51,65,85,0.5); border:1px solid #475569; border-radius:0.5rem; padding:0.5rem 0.75rem; color:#e2e8f0; font-size:0.875rem; outline:none; box-sizing:border-box; }
+  .f-input:focus { box-shadow:0 0 0 2px rgba(232,121,160,0.4); border-color:#e879a0; }
+  .f-input::placeholder { color:#64748b; }
+  .grid-2      { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  .save-row    { margin-top:1.25rem; display:flex; justify-content:flex-end; }
+  .btn-save    { padding:0.5rem 1.25rem; background:#e879a0; color:#fff; border-radius:0.5rem; font-size:0.875rem; font-weight:500; border:none; cursor:pointer; transition:background .15s; }
+  .btn-save:hover { background:#c0557e; }
+  .toggle-row  { display:flex; align-items:center; justify-content:space-between; padding:0.625rem 0.875rem; background:rgba(51,65,85,0.4); border-radius:0.5rem; gap:1rem; }
+  .toggle-name { font-size:0.875rem; font-weight:500; color:#e2e8f0; margin:0; }
+  .toggle-desc { font-size:0.75rem; color:#64748b; margin:0.125rem 0 0; }
+  .tbtn        { padding:0.375rem 0.875rem; border-radius:0.5rem; font-size:0.8125rem; font-weight:500; border:none; cursor:pointer; flex-shrink:0; transition:background .15s; }
+</style>
+<script>
+function setVal(id, v) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.tagName === 'SELECT') { el.value = v != null ? v : el.options[0]?.value; }
+  else { el.value = v != null ? v : ''; }
+}
+
+function updateBoolBtn(btnId, val) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (val) {
+    btn.textContent = '✅ 已开启';
+    btn.style.background = '#16a34a'; btn.style.color = '#fff';
+  } else {
+    btn.textContent = '❌ 已关闭';
+    btn.style.background = '#475569'; btn.style.color = '#e2e8f0';
+  }
+  btn.dataset.val = val ? '1' : '0';
+}
+
+async function toggleBool(key, btnId) {
+  const btn = document.getElementById(btnId);
+  const newVal = btn.dataset.val !== '1';
+  const data = await api('/admin/api/settings', { method:'POST', body:JSON.stringify({ [key]: newVal }) });
+  showToast(data.msg || '操作完成', data.ok);
+  if (data.ok) updateBoolBtn(btnId, newVal);
+}
+
+async function saveGroup(fields, asInt = false) {
+  const body = {};
+  for (const f of fields) {
+    const el = document.getElementById(f);
+    if (!el) continue;
+    body[f] = asInt ? parseInt(el.value, 10) : el.value;
+  }
+  const data = await api('/admin/api/settings', { method:'POST', body:JSON.stringify(body) });
+  showToast(data.msg || '操作完成', data.ok);
+}
+
+async function loadSettings() {
+  const data = await api('/admin/api/settings');
+  if (!data.ok) return;
+  const s = data.settings;
+  // Bot 基础
+  setVal('bot_name', s.bot_name); setVal('money', s.money);
+  setVal('ranks_logo', s.ranks_logo); setVal('bot_photo', s.bot_photo);
+  // Emby
+  setVal('emby_url', s.emby_url); setVal('emby_line', s.emby_line);
+  setVal('emby_whitelist_line', s.emby_whitelist_line);
+  // MiniApp
+  setVal('miniapp_url', s.miniapp_url); setVal('tmdb_api_key', s.tmdb_api_key);
+  // 注册
+  updateBoolBtn('stat_btn', s.stat);
+  setVal('all_user', s.all_user ?? 0); setVal('open_us', s.open_us ?? 30);
+  // 功能开关
+  ['checkin','exchange','whitelist','invite','leave_ban','uplays'].forEach(k => updateBoolBtn(k+'_btn', s[k]));
+  setVal('checkin_lv', s.checkin_lv); setVal('invite_lv', s.invite_lv);
+  // 积分消耗
+  setVal('checkin_reward_min', s.checkin_reward_min ?? 1);
+  setVal('checkin_reward_max', s.checkin_reward_max ?? 10);
+  setVal('exchange_cost', s.exchange_cost ?? 100);
+  setVal('whitelist_cost', s.whitelist_cost ?? 9999);
+  setVal('invite_cost', s.invite_cost ?? 1000);
+  setVal('srank_cost', s.srank_cost ?? 5);
+  // 运营参数
+  setVal('kk_gift_days', s.kk_gift_days ?? 30);
+  setVal('activity_check_days', s.activity_check_days ?? 21);
+  setVal('freeze_days', s.freeze_days ?? 3);
+  updateBoolBtn('fuxx_pitao_btn', s.fuxx_pitao);
+  // 求片额度
+  setVal('request_quota_a', s.request_quota_a ?? 999);
+  setVal('request_quota_b', s.request_quota_b ?? 10);
+  setVal('request_quota_e', s.request_quota_e ?? 5);
+  setVal('request_quota_days', s.request_quota_days ?? 30);
+  // 计划任务
+  ['schedall_check_ex','schedall_low_activity','schedall_dayrank','schedall_weekrank',
+   'schedall_dayplayrank','schedall_weekplayrank','schedall_backup_db','schedall_partition_check'
+  ].forEach(k => updateBoolBtn(k+'_btn', s[k]));
+  // 客户端过滤
+  updateBoolBtn('client_filter_terminate_session_btn', s.client_filter_terminate_session);
+  updateBoolBtn('client_filter_block_user_btn', s.client_filter_block_user);
+}
+loadSettings();
+</script>
+{% endblock %}

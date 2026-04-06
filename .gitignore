@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+*.session
+*.session-journal
+*.log
+log/
+config.json
+nginx/

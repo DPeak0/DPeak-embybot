@@ -1,0 +1,107 @@
+{% extends "admin/layout.html" %}
+{% block title %}服务器状态{% endblock %}
+{% block heading %}服务器状态{% endblock %}
+
+{% block content %}
+<!-- 统计卡片 -->
+<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.25rem;" id="statsGrid">
+  {% for _ in range(4) %}
+  <div class="card" style="padding:1.25rem; animation:pulse 1.5s infinite;">
+    <div style="height:12px; background:rgba(51,65,85,0.6); border-radius:4px; width:6rem; margin-bottom:0.75rem;"></div>
+    <div style="height:2rem; background:rgba(51,65,85,0.6); border-radius:4px; width:4rem;"></div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- 媒体库 + 用户统计 -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+
+  <!-- 媒体库统计 -->
+  <div class="card" style="padding:1.5rem;">
+    <h2 style="font-size:0.9375rem; font-weight:600; color:#e2e8f0; margin:0 0 1rem; display:flex; align-items:center; gap:0.5rem;">
+      <i class="fa-solid fa-photo-film" style="color:#e879a0;"></i> 媒体库统计
+    </h2>
+    <div id="mediaStats" style="display:flex; flex-direction:column; gap:0;">
+      <div style="color:#64748b; font-size:0.875rem;">加载中…</div>
+    </div>
+  </div>
+
+  <!-- 用户统计 -->
+  <div class="card" style="padding:1.5rem;">
+    <h2 style="font-size:0.9375rem; font-weight:600; color:#e2e8f0; margin:0 0 1rem; display:flex; align-items:center; gap:0.5rem;">
+      <i class="fa-solid fa-users" style="color:#e879a0;"></i> 用户统计
+    </h2>
+    <div id="userStats" style="display:flex; flex-direction:column; gap:0;">
+      <div style="color:#64748b; font-size:0.875rem;">加载中…</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid rgba(51,65,85,0.4);
+    font-size: 0.875rem;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+</style>
+<script>
+async function loadDashboard() {
+  const data = await api('/admin/api/dashboard');
+  const db     = data.db     || {};
+  const media  = data.media  || {};
+  const streams = data.active_streams ?? 0;
+
+  // ── 统计卡片 ──────────────────────────────────────────
+  const cards = [
+    { label: '活跃流',      value: streams,              icon: 'fa-play',  color: '#4ade80' },
+    { label: '注册用户',    value: db.total_users  ?? 0, icon: 'fa-users', color: '#60a5fa' },
+    { label: '已绑定 Emby', value: db.emby_bound   ?? 0, icon: 'fa-link',  color: '#a78bfa' },
+    { label: '白名单',      value: db.whitelist    ?? 0, icon: 'fa-crown', color: '#fbbf24' },
+  ];
+  document.getElementById('statsGrid').innerHTML = cards.map(c => `
+    <div class="card" style="padding:1.25rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+        <span style="font-size:0.75rem;color:#94a3b8;">${c.label}</span>
+        <i class="fa-solid ${c.icon}" style="color:${c.color};font-size:1.125rem;"></i>
+      </div>
+      <p style="font-size:1.875rem;font-weight:700;color:#fff;margin:0;line-height:1;">${c.value.toLocaleString()}</p>
+    </div>
+  `).join('');
+
+  // ── 媒体库统计 ───────────────────────────────────────
+  document.getElementById('mediaStats').innerHTML = [
+    ['🎬 电影',  media.movie   ?? 0, '#60a5fa'],
+    ['📺 剧集',  media.series  ?? 0, '#a78bfa'],
+    ['🎞️ 集数', media.episode ?? 0, '#94a3b8'],
+    ['🎵 音乐',  media.song    ?? 0, '#4ade80'],
+  ].map(([label, val, color]) => `
+    <div class="stat-row">
+      <span style="color:#cbd5e1;">${label}</span>
+      <span style="font-weight:600;color:${color};">${val.toLocaleString()}</span>
+    </div>
+  `).join('');
+
+  // ── 用户各等级统计 ───────────────────────────────────
+  document.getElementById('userStats').innerHTML = [
+    ['♾ 白名单',   db.whitelist    ?? 0, '#fbbf24'],
+    ['🔵 普通用户', db.normal       ?? 0, '#60a5fa'],
+    ['🟢 公益用户', db.public       ?? 0, '#4ade80'],
+    ['🔴 已封禁',   db.banned       ?? 0, '#f87171'],
+    ['⬜ 未注册',   db.unregistered ?? 0, '#475569'],
+  ].map(([label, val, color]) => `
+    <div class="stat-row">
+      <span style="color:#cbd5e1;">${label}</span>
+      <span style="font-weight:600;color:${color};">${val.toLocaleString()}</span>
+    </div>
+  `).join('');
+}
+
+loadDashboard();
+</script>
+{% endblock %}

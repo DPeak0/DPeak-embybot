@@ -1,0 +1,703 @@
+{% extends "admin/layout.html" %}
+{% block title %}注册码管理{% endblock %}
+{% block heading %}注册码 / 续期码管理{% endblock %}
+
+{% block content %}
+<!-- 统计卡片 -->
+<div id="statsRow" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem;">
+  <div class="card" style="padding:1.25rem;">
+    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 0.5rem;">总计</p>
+    <p id="statTotal" style="font-size:1.75rem; font-weight:700; color:#fff; margin:0;">—</p>
+  </div>
+  <div class="card" style="padding:1.25rem;">
+    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 0.5rem;">未使用</p>
+    <p id="statUnused" style="font-size:1.75rem; font-weight:700; color:#4ade80; margin:0;">—</p>
+  </div>
+  <div class="card" style="padding:1.25rem;">
+    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 0.5rem;">已使用</p>
+    <p id="statUsed" style="font-size:1.75rem; font-weight:700; color:#fb923c; margin:0;">—</p>
+  </div>
+  <div class="card" style="padding:1.25rem;">
+    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 0.5rem;">公益码(未用)</p>
+    <p id="statPublic" style="font-size:1.75rem; font-weight:700; color:#a78bfa; margin:0;">—</p>
+  </div>
+  <div class="card" style="padding:1.25rem;">
+    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 0.5rem;">普通码(未用)</p>
+    <p id="statNormal" style="font-size:1.75rem; font-weight:700; color:#38bdf8; margin:0;">—</p>
+  </div>
+  <div class="card" style="padding:1.25rem;">
+    <p style="font-size:0.75rem; color:#94a3b8; margin:0 0 0.5rem;">未用天数分布</p>
+    <p id="statDays" style="font-size:0.75rem; color:#cbd5e1; margin:0; line-height:1.8;">—</p>
+  </div>
+</div>
+
+<!-- 操作栏 -->
+<div class="card" style="padding:1rem 1.25rem; margin-bottom:1rem;">
+  <!-- 第一行：过滤条件 -->
+  <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end; margin-bottom:0.75rem;">
+    <!-- 搜索码 -->
+    <div style="display:flex; flex-direction:column; gap:0.3rem;">
+      <label style="font-size:0.75rem; color:#94a3b8;">码字符串</label>
+      <input id="searchInput" type="text" placeholder="模糊搜索…"
+        style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.45rem 0.75rem; color:#fff; font-size:0.875rem; width:180px; outline:none;"
+        onkeydown="if(event.key==='Enter') loadCodes(1)" />
+    </div>
+
+    <!-- 类型 -->
+    <div style="display:flex; flex-direction:column; gap:0.3rem;">
+      <label style="font-size:0.75rem; color:#94a3b8;">类型</label>
+      <select id="filterType"
+        style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.45rem 0.75rem; color:#fff; font-size:0.875rem; outline:none;">
+        <option value="all">全部类型</option>
+        <option value="register_b">普通注册码</option>
+        <option value="register_e">公益注册码</option>
+        <option value="renew">续期码</option>
+      </select>
+    </div>
+
+    <!-- 状态 -->
+    <div style="display:flex; flex-direction:column; gap:0.3rem;">
+      <label style="font-size:0.75rem; color:#94a3b8;">状态</label>
+      <select id="filterStatus"
+        style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.45rem 0.75rem; color:#fff; font-size:0.875rem; outline:none;">
+        <option value="all">全部状态</option>
+        <option value="unused">未使用</option>
+        <option value="used">已使用</option>
+      </select>
+    </div>
+
+    <!-- 天数 -->
+    <div style="display:flex; flex-direction:column; gap:0.3rem;">
+      <label style="font-size:0.75rem; color:#94a3b8;">天数</label>
+      <select id="filterDays"
+        style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.45rem 0.75rem; color:#fff; font-size:0.875rem; outline:none;">
+        <option value="">全部天数</option>
+        <option value="30">月卡 30天</option>
+        <option value="90">季卡 90天</option>
+        <option value="180">半年卡 180天</option>
+        <option value="365">年卡 365天</option>
+      </select>
+    </div>
+
+    <!-- 创建者TG -->
+    <div style="display:flex; flex-direction:column; gap:0.3rem; position:relative;">
+      <label style="font-size:0.75rem; color:#94a3b8;">创建者TG</label>
+      <input id="filterCreatorTg" type="text" placeholder="输入TG ID" autocomplete="off"
+        style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.45rem 0.75rem; color:#fff; font-size:0.875rem; width:120px; outline:none;"
+        oninput="acFetchTg('filterCreatorTg','acCreatorDrop','/admin/api/codes/suggest_creators')"
+        onfocus="acFetchTg('filterCreatorTg','acCreatorDrop','/admin/api/codes/suggest_creators')"
+        onblur="acBlur('acCreatorDrop')"
+        onkeydown="if(event.key==='Enter'){acBlur('acCreatorDrop');loadCodes(1);} if(event.key==='Escape') acBlur('acCreatorDrop');" />
+      <div id="acCreatorDrop" class="ac-dropdown"></div>
+    </div>
+
+    <!-- 使用者TG -->
+    <div style="display:flex; flex-direction:column; gap:0.3rem; position:relative;">
+      <label style="font-size:0.75rem; color:#94a3b8;">使用者TG</label>
+      <input id="filterUsedByTg" type="text" placeholder="输入TG ID" autocomplete="off"
+        style="background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.45rem 0.75rem; color:#fff; font-size:0.875rem; width:120px; outline:none;"
+        oninput="acFetchTg('filterUsedByTg','acUserDrop','/admin/api/codes/suggest_users')"
+        onfocus="acFetchTg('filterUsedByTg','acUserDrop','/admin/api/codes/suggest_users')"
+        onblur="acBlur('acUserDrop')"
+        onkeydown="if(event.key==='Enter'){acBlur('acUserDrop');loadCodes(1);} if(event.key==='Escape') acBlur('acUserDrop');" />
+      <div id="acUserDrop" class="ac-dropdown"></div>
+    </div>
+
+    <!-- 查询 + 操作按钮 -->
+    <div style="display:flex; gap:0.5rem; align-items:flex-end; margin-left:auto; flex-wrap:wrap;">
+      <button onclick="loadCodes(1)"
+        style="background:#e879a0; color:#fff; border:none; border-radius:0.5rem; padding:0.45rem 1rem; font-size:0.875rem; cursor:pointer; display:flex; align-items:center; gap:0.4rem;">
+        <i class="fa-solid fa-magnifying-glass"></i> 查询
+      </button>
+      <button onclick="openCreateModal()"
+        style="background:linear-gradient(135deg,#e879a0,#db2777); color:#fff; border:none; border-radius:0.5rem; padding:0.45rem 1rem; font-size:0.875rem; cursor:pointer; display:flex; align-items:center; gap:0.4rem;">
+        <i class="fa-solid fa-plus"></i> 生成码
+      </button>
+      <button onclick="exportCSV()"
+        style="background:#334155; color:#cbd5e1; border:none; border-radius:0.5rem; padding:0.45rem 1rem; font-size:0.875rem; cursor:pointer; display:flex; align-items:center; gap:0.4rem;">
+        <i class="fa-solid fa-download"></i> 导出CSV
+      </button>
+      <button onclick="openBatchDeleteModal()"
+        style="background:#7f1d1d; color:#fca5a5; border:1px solid #991b1b; border-radius:0.5rem; padding:0.45rem 1rem; font-size:0.875rem; cursor:pointer; display:flex; align-items:center; gap:0.4rem;">
+        <i class="fa-solid fa-trash"></i> 批量删除未用
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 已选操作栏（勾选后显示） -->
+<div id="selBar" style="display:none; background:#1e3a5f; border:1px solid #2563eb; border-radius:0.5rem; padding:0.6rem 1rem; margin-bottom:0.75rem; display:none; align-items:center; gap:1rem; font-size:0.875rem; color:#93c5fd;">
+  <span>已选 <b id="selCount">0</b> 条</span>
+  <button onclick="deleteSelected()"
+    style="background:#7f1d1d; color:#fca5a5; border:1px solid #991b1b; border-radius:0.375rem; padding:0.3rem 0.75rem; font-size:0.8rem; cursor:pointer;">
+    <i class="fa-solid fa-trash"></i> 删除所选
+  </button>
+  <button onclick="copySelected()"
+    style="background:#334155; color:#cbd5e1; border:none; border-radius:0.375rem; padding:0.3rem 0.75rem; font-size:0.8rem; cursor:pointer;">
+    <i class="fa-solid fa-copy"></i> 复制码值
+  </button>
+  <button onclick="clearSel()" style="margin-left:auto; background:none; border:none; color:#64748b; cursor:pointer; font-size:0.8rem;">取消选择</button>
+</div>
+
+<!-- 表格 -->
+<div class="card" style="overflow:hidden;">
+  <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.875rem;">
+      <thead>
+        <tr style="border-bottom:1px solid #334155;">
+          <th style="padding:0.75rem 1rem; text-align:left; color:#94a3b8; font-weight:500; width:32px;">
+            <input type="checkbox" id="checkAll" onchange="toggleAll(this.checked)" style="cursor:pointer;" />
+          </th>
+          <th style="padding:0.75rem 1rem; text-align:left; color:#94a3b8; font-weight:500;">码</th>
+          <th style="padding:0.75rem 1rem; text-align:left; color:#94a3b8; font-weight:500;">类型</th>
+          <th style="padding:0.75rem 1rem; text-align:left; color:#94a3b8; font-weight:500;">天数</th>
+          <th style="padding:0.75rem 1rem; text-align:left; color:#94a3b8; font-weight:500;">状态</th>
+          <th style="padding:0.75rem 1rem; text-align:left; color:#94a3b8; font-weight:500;">创建者TG</th>
+          <th style="padding:0.75rem 1rem; text-align:left; color:#94a3b8; font-weight:500;">创建时间</th>
+          <th style="padding:0.75rem 1rem; text-align:left; color:#94a3b8; font-weight:500;">使用者TG</th>
+          <th style="padding:0.75rem 1rem; text-align:left; color:#94a3b8; font-weight:500;">使用时间</th>
+          <th style="padding:0.75rem 1rem; text-align:center; color:#94a3b8; font-weight:500;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="codesTbody">
+        <tr><td colspan="9" style="padding:3rem; text-align:center; color:#475569;">加载中…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 分页 -->
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; border-top:1px solid #334155;">
+    <span id="pageInfo" style="font-size:0.8rem; color:#64748b;"></span>
+    <div style="display:flex; gap:0.5rem;">
+      <button id="btnPrev" onclick="changePage(-1)"
+        style="background:#334155; border:none; border-radius:0.375rem; padding:0.35rem 0.75rem; color:#cbd5e1; cursor:pointer; font-size:0.8rem;">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button id="btnNext" onclick="changePage(1)"
+        style="background:#334155; border:none; border-radius:0.375rem; padding:0.35rem 0.75rem; color:#cbd5e1; cursor:pointer; font-size:0.8rem;">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── 生成码弹窗 ── -->
+<div id="createModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center;">
+  <div style="background:#1e293b; border:1px solid #334155; border-radius:0.75rem; padding:1.75rem; width:100%; max-width:420px; box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+    <h3 style="font-size:1.125rem; font-weight:600; color:#fff; margin:0 0 1.25rem;">生成注册码 / 续期码</h3>
+
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+      <div>
+        <label style="font-size:0.8rem; color:#94a3b8; display:block; margin-bottom:0.4rem;">码类型</label>
+        <select id="createType" style="width:100%; background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.6rem 0.75rem; color:#fff; font-size:0.875rem; outline:none;">
+          <option value="register_b">普通注册码 (lv=b)</option>
+          <option value="register_e">公益注册码 (lv=e)</option>
+          <option value="renew">续期码</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.8rem; color:#94a3b8; display:block; margin-bottom:0.4rem;">有效天数</label>
+        <select id="createDays" style="width:100%; background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.6rem 0.75rem; color:#fff; font-size:0.875rem; outline:none;">
+          <option value="30">月卡 30天</option>
+          <option value="90">季卡 90天</option>
+          <option value="180">半年卡 180天</option>
+          <option value="365">年卡 365天</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.8rem; color:#94a3b8; display:block; margin-bottom:0.4rem;">生成数量（1~200）</label>
+        <input id="createCount" type="number" min="1" max="200" value="1"
+          style="width:100%; background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.6rem 0.75rem; color:#fff; font-size:0.875rem; outline:none; box-sizing:border-box;" />
+      </div>
+    </div>
+
+    <!-- 生成结果展示区 -->
+    <div id="createResult" style="display:none; margin-top:1rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+        <label style="font-size:0.8rem; color:#94a3b8;">生成结果（点击复制全部）</label>
+        <button onclick="copyAllCodes()"
+          style="background:#334155; border:none; border-radius:0.375rem; padding:0.25rem 0.6rem; color:#cbd5e1; cursor:pointer; font-size:0.75rem;">
+          <i class="fa-solid fa-copy"></i> 复制
+        </button>
+      </div>
+      <textarea id="createResultText" readonly rows="6"
+        style="width:100%; background:#0f172a; border:1px solid #334155; border-radius:0.5rem; padding:0.6rem; color:#4ade80; font-size:0.75rem; font-family:monospace; resize:vertical; outline:none; box-sizing:border-box;"></textarea>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.25rem;">
+      <button onclick="closeCreateModal()"
+        style="background:#334155; border:none; border-radius:0.5rem; padding:0.6rem 1.25rem; color:#cbd5e1; cursor:pointer; font-size:0.875rem;">
+        关闭
+      </button>
+      <button onclick="submitCreate()"
+        style="background:linear-gradient(135deg,#e879a0,#db2777); border:none; border-radius:0.5rem; padding:0.6rem 1.25rem; color:#fff; cursor:pointer; font-size:0.875rem; font-weight:500;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> 生成
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── 批量删除未用弹窗 ── -->
+<div id="batchDelModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center;">
+  <div style="background:#1e293b; border:1px solid #334155; border-radius:0.75rem; padding:1.75rem; width:100%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+    <h3 style="font-size:1.125rem; font-weight:600; color:#fca5a5; margin:0 0 0.75rem;">
+      <i class="fa-solid fa-triangle-exclamation"></i> 批量删除未使用码
+    </h3>
+    <p style="font-size:0.875rem; color:#94a3b8; margin:0 0 1rem;">此操作不可恢复！请选择要删除的天数范围：</p>
+
+    <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.25rem;">
+      <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem; color:#cbd5e1; cursor:pointer;">
+        <input type="checkbox" name="delDays" value="0" style="cursor:pointer;" onchange="toggleAllDays(this)"> 全部天数
+      </label>
+      <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem; color:#cbd5e1; cursor:pointer; padding-left:1.25rem;">
+        <input type="checkbox" name="delDays" value="30"> 月卡 30天
+      </label>
+      <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem; color:#cbd5e1; cursor:pointer; padding-left:1.25rem;">
+        <input type="checkbox" name="delDays" value="90"> 季卡 90天
+      </label>
+      <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem; color:#cbd5e1; cursor:pointer; padding-left:1.25rem;">
+        <input type="checkbox" name="delDays" value="180"> 半年卡 180天
+      </label>
+      <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.875rem; color:#cbd5e1; cursor:pointer; padding-left:1.25rem;">
+        <input type="checkbox" name="delDays" value="365"> 年卡 365天
+      </label>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+      <button onclick="closeBatchDeleteModal()"
+        style="background:#334155; border:none; border-radius:0.5rem; padding:0.6rem 1.25rem; color:#cbd5e1; cursor:pointer; font-size:0.875rem;">
+        取消
+      </button>
+      <button onclick="submitBatchDelete()"
+        style="background:#991b1b; border:none; border-radius:0.5rem; padding:0.6rem 1.25rem; color:#fca5a5; cursor:pointer; font-size:0.875rem; font-weight:500;">
+        <i class="fa-solid fa-trash"></i> 确认删除
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 码详情弹窗 ── -->
+<div id="codeDetailModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100; align-items:center; justify-content:center;">
+  <div style="background:#1e293b; border:1px solid #334155; border-radius:0.75rem; padding:1.75rem; width:100%; max-width:520px; box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+    <h3 style="font-size:1rem; font-weight:600; color:#fff; margin:0 0 1rem;">码详情</h3>
+    <div id="codeDetailContent" style="font-size:0.875rem; color:#cbd5e1; line-height:2;"></div>
+    <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+      <button onclick="copyCode(_detailCode)"
+        style="background:#334155; border:none; border-radius:0.5rem; padding:0.5rem 1rem; color:#cbd5e1; cursor:pointer; font-size:0.875rem;">
+        <i class="fa-solid fa-copy"></i> 复制
+      </button>
+      <button onclick="closeDetailModal()"
+        style="margin-left:auto; background:#334155; border:none; border-radius:0.5rem; padding:0.5rem 1rem; color:#cbd5e1; cursor:pointer; font-size:0.875rem;">
+        关闭
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .ac-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    min-width: 120px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 300;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .ac-item {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.875rem;
+    color: #e2e8f0;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .ac-item:hover { background: rgba(255,255,255,0.08); }
+</style>
+<script>
+let _page = 1;
+const _pageSize = 20;
+let _total = 0;
+let _selectedCodes = new Set();
+let _detailCode = '';
+
+const _TYPE_LABEL = {
+  register_b: '普通注册码', register_e: '公益注册码', renew: '续期码',
+};
+const _LV_BADGE = {
+  b: '<span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8;">普通</span>',
+  e: '<span class="badge" style="background:rgba(167,139,250,0.15); color:#a78bfa;">公益</span>',
+};
+
+// ── 统计 ──────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  const data = await api('/admin/api/codes/stats');
+  document.getElementById('statTotal').textContent  = data.total ?? '—';
+  document.getElementById('statUnused').textContent = data.unused ?? '—';
+  document.getElementById('statUsed').textContent   = data.used ?? '—';
+  document.getElementById('statPublic').textContent = data.public ?? '—';
+  document.getElementById('statNormal').textContent = data.normal ?? '—';
+  if (data.by_days) {
+    document.getElementById('statDays').innerHTML =
+      `30天: <b>${data.by_days['30']}</b> &nbsp; 90天: <b>${data.by_days['90']}</b><br>180天: <b>${data.by_days['180']}</b> &nbsp; 365天: <b>${data.by_days['365']}</b>`;
+  }
+}
+
+// ── 列表 ──────────────────────────────────────────────────────────────────────
+async function loadCodes(page) {
+  if (page) _page = page;
+  const q          = document.getElementById('searchInput').value.trim();
+  const type       = document.getElementById('filterType').value;
+  const status     = document.getElementById('filterStatus').value;
+  const days       = document.getElementById('filterDays').value;
+  const creatorTg  = document.getElementById('filterCreatorTg').value.trim();
+  const usedByTg   = document.getElementById('filterUsedByTg').value.trim();
+
+  let url = `/admin/api/codes?page=${_page}&page_size=${_pageSize}&type=${type}&status=${status}&q=${encodeURIComponent(q)}`;
+  if (days)      url += `&days=${days}`;
+  if (creatorTg) url += `&creator_tg=${encodeURIComponent(creatorTg)}`;
+  if (usedByTg)  url += `&used_by_tg=${encodeURIComponent(usedByTg)}`;
+
+  const data = await api(url);
+  _total = data.total || 0;
+  renderTable(data.items || []);
+  renderPagination();
+}
+
+function renderTable(items) {
+  const tbody = document.getElementById('codesTbody');
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="padding:3rem; text-align:center; color:#475569;">暂无数据</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map(item => {
+    const isRegister = item.type === 'register';
+    const typeBadge = isRegister
+      ? (item.lv === 'e'
+        ? '<span class="badge" style="background:rgba(167,139,250,0.15); color:#a78bfa;">公益注册</span>'
+        : '<span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8;">普通注册</span>')
+      : '<span class="badge" style="background:rgba(251,191,36,0.15); color:#fbbf24;">续期</span>';
+    const statusBadge = item.status === 'used'
+      ? '<span class="badge" style="background:rgba(251,146,60,0.15); color:#fb923c;">已使用</span>'
+      : '<span class="badge" style="background:rgba(74,222,128,0.15); color:#4ade80;">未使用</span>';
+    const checked = _selectedCodes.has(item.code) ? 'checked' : '';
+    const daysLabel = {30:'月卡', 90:'季卡', 180:'半年', 365:'年卡'}[item.days] || '';
+    const creatorCell = item.creator
+      ? `<span style="color:#94a3b8;">${item.creator}</span>`
+      : '<span style="color:#475569;">—</span>';
+    // 转义 code 值用于 onclick 属性（避免特殊字符问题）
+    const codeEsc = item.code.replace(/'/g, "\\'");
+    return `
+      <tr style="border-bottom:1px solid rgba(51,65,85,0.4); transition:background 0.1s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
+        <td style="padding:0.75rem 1rem;">
+          <input type="checkbox" ${checked} onchange="toggleCode(${JSON.stringify(item.code)}, this.checked)" style="cursor:pointer;" />
+        </td>
+        <td style="padding:0.75rem 1rem; font-family:monospace; font-size:0.8rem;">
+          <span style="color:#e2e8f0; cursor:pointer;" onclick="showDetail(${JSON.stringify(item)})" title="点击查看详情">${item.code}</span>
+          <button onclick="copyCode('${codeEsc}')" title="复制" style="background:none; border:none; color:#64748b; cursor:pointer; margin-left:0.4rem; font-size:0.75rem; padding:0;">
+            <i class="fa-regular fa-copy"></i>
+          </button>
+        </td>
+        <td style="padding:0.75rem 1rem;">${typeBadge}</td>
+        <td style="padding:0.75rem 1rem; color:#94a3b8;">${daysLabel}(${item.days}天)</td>
+        <td style="padding:0.75rem 1rem;">${statusBadge}</td>
+        <td style="padding:0.75rem 1rem; color:#94a3b8;">${creatorCell}</td>
+        <td style="padding:0.75rem 1rem; color:#94a3b8; font-size:0.8rem;">${item.created_at || '—'}</td>
+        <td style="padding:0.75rem 1rem; color:#94a3b8;">${item.used_by ? `<a href="tg://user?id=${item.used_by}" style="color:#38bdf8;">${item.used_by}</a>` : '—'}</td>
+        <td style="padding:0.75rem 1rem; color:#94a3b8; font-size:0.8rem;">${item.used_time || '—'}</td>
+        <td style="padding:0.75rem 1rem; text-align:center;">
+          <button onclick="deleteSingle('${codeEsc}')" title="删除" style="background:#7f1d1d; border:1px solid #991b1b; border-radius:0.375rem; padding:0.25rem 0.6rem; color:#fca5a5; cursor:pointer; font-size:0.75rem;">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function renderPagination() {
+  const totalPages = Math.ceil(_total / _pageSize) || 1;
+  document.getElementById('pageInfo').textContent = `第 ${_page}/${totalPages} 页，共 ${_total} 条`;
+  document.getElementById('btnPrev').disabled = _page <= 1;
+  document.getElementById('btnNext').disabled = _page >= totalPages;
+  document.getElementById('btnPrev').style.opacity = _page <= 1 ? '0.4' : '1';
+  document.getElementById('btnNext').style.opacity = _page >= totalPages ? '0.4' : '1';
+}
+
+function changePage(delta) {
+  const totalPages = Math.ceil(_total / _pageSize) || 1;
+  const newPage = _page + delta;
+  if (newPage < 1 || newPage > totalPages) return;
+  _page = newPage;
+  loadCodes();
+}
+
+// ── 选择 ──────────────────────────────────────────────────────────────────────
+function toggleCode(code, checked) {
+  if (checked) _selectedCodes.add(code); else _selectedCodes.delete(code);
+  updateSelBar();
+}
+
+function toggleAll(checked) {
+  document.querySelectorAll('#codesTbody input[type=checkbox]').forEach(cb => {
+    const code = cb.closest('tr')?.querySelector('td:nth-child(2) span')?.textContent?.trim();
+    if (!code) return;
+    cb.checked = checked;
+    if (checked) _selectedCodes.add(code); else _selectedCodes.delete(code);
+  });
+  updateSelBar();
+}
+
+function clearSel() {
+  _selectedCodes.clear();
+  document.querySelectorAll('#codesTbody input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('checkAll').checked = false;
+  updateSelBar();
+}
+
+function updateSelBar() {
+  const bar = document.getElementById('selBar');
+  const count = _selectedCodes.size;
+  document.getElementById('selCount').textContent = count;
+  bar.style.display = count > 0 ? 'flex' : 'none';
+}
+
+// ── 删除 ──────────────────────────────────────────────────────────────────────
+async function deleteSingle(code) {
+  if (!confirm(`确认删除码：\n${code}`)) return;
+  const res = await api('/admin/api/codes/delete', {
+    method: 'POST',
+    body: JSON.stringify({ codes: [code] }),
+  });
+  if (res.ok) {
+    showToast(`已删除 ${res.count} 条`);
+    _selectedCodes.delete(code);
+    updateSelBar();
+    loadCodes();
+    loadStats();
+  } else {
+    showToast(res.msg || '删除失败', false);
+  }
+}
+
+async function deleteSelected() {
+  if (!_selectedCodes.size) return;
+  if (!confirm(`确认删除选中的 ${_selectedCodes.size} 条码？此操作不可恢复！`)) return;
+  const res = await api('/admin/api/codes/delete', {
+    method: 'POST',
+    body: JSON.stringify({ codes: [..._selectedCodes] }),
+  });
+  if (res.ok) {
+    showToast(`已删除 ${res.count} 条`);
+    clearSel();
+    loadCodes();
+    loadStats();
+  } else {
+    showToast(res.msg || '删除失败', false);
+  }
+}
+
+async function copySelected() {
+  const text = [..._selectedCodes].join('\n');
+  await _clipboardWrite(text);
+  showToast('已复制到剪贴板');
+}
+
+// ── 生成码弹窗 ────────────────────────────────────────────────────────────────
+function openCreateModal() {
+  document.getElementById('createResult').style.display = 'none';
+  document.getElementById('createResultText').value = '';
+  document.getElementById('createModal').style.display = 'flex';
+}
+
+function closeCreateModal() {
+  document.getElementById('createModal').style.display = 'none';
+  loadCodes();
+  loadStats();
+}
+
+async function submitCreate() {
+  const type  = document.getElementById('createType').value;
+  const days  = parseInt(document.getElementById('createDays').value);
+  const count = parseInt(document.getElementById('createCount').value);
+  if (isNaN(count) || count < 1 || count > 200) {
+    showToast('数量范围 1~200', false); return;
+  }
+  const res = await api('/admin/api/codes/create', {
+    method: 'POST',
+    body: JSON.stringify({ type, days, count }),
+  });
+  if (res.ok) {
+    document.getElementById('createResultText').value = res.codes.join('\n');
+    document.getElementById('createResult').style.display = 'block';
+    showToast(`成功生成 ${res.count} 个码`);
+  } else {
+    showToast(res.msg || '生成失败', false);
+  }
+}
+
+async function copyAllCodes() {
+  const text = document.getElementById('createResultText').value;
+  if (!text) return;
+  await _clipboardWrite(text);
+  showToast('已复制全部码');
+}
+
+// ── 批量删除弹窗 ──────────────────────────────────────────────────────────────
+function openBatchDeleteModal() {
+  document.querySelectorAll('input[name=delDays]').forEach(cb => cb.checked = false);
+  document.getElementById('batchDelModal').style.display = 'flex';
+}
+
+function closeBatchDeleteModal() {
+  document.getElementById('batchDelModal').style.display = 'none';
+}
+
+function toggleAllDays(cb) {
+  document.querySelectorAll('input[name=delDays]').forEach(c => {
+    if (c !== cb) c.checked = cb.checked;
+  });
+}
+
+async function submitBatchDelete() {
+  const selected = [...document.querySelectorAll('input[name=delDays]:checked')]
+    .map(cb => parseInt(cb.value))
+    .filter(v => v > 0);  // 0 = "全部" checkbox，过滤掉
+
+  const all = document.querySelector('input[name=delDays][value="0"]').checked;
+
+  if (!all && !selected.length) {
+    showToast('请至少勾选一个天数', false); return;
+  }
+
+  const label = all ? '全部天数' : selected.join('/') + '天';
+  if (!confirm(`确认删除所有未使用的 ${label} 码？此操作不可恢复！`)) return;
+
+  const body = all ? { days: [], confirm: true } : { days: selected, confirm: true };
+  const res = await api('/admin/api/codes/delete_filter', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  if (res.ok) {
+    showToast(`已删除 ${res.count} 个未使用码`);
+    closeBatchDeleteModal();
+    loadCodes();
+    loadStats();
+  } else {
+    showToast(res.msg || '删除失败', false);
+  }
+}
+
+// ── 详情弹窗 ──────────────────────────────────────────────────────────────────
+function showDetail(item) {
+  _detailCode = item.code;
+  const typeLabel = item.type === 'register'
+    ? (item.lv === 'e' ? '公益注册码' : '普通注册码')
+    : (item.type === 'renew' ? '续期码' : item.type);
+  const lvLabel = {b:'普通(b)', e:'公益(e)'}[item.lv] || item.lv;
+  const daysMap = {30:'月卡(30天)', 90:'季卡(90天)', 180:'半年卡(180天)', 365:'年卡(365天)'};
+  document.getElementById('codeDetailContent').innerHTML = `
+    <table style="width:100%; border-collapse:collapse;">
+      <tr><td style="color:#64748b; padding:0.25rem 0; width:90px;">码值</td><td style="font-family:monospace; font-size:0.8rem; color:#4ade80; word-break:break-all;">${item.code}</td></tr>
+      <tr><td style="color:#64748b; padding:0.25rem 0;">类型</td><td>${typeLabel}</td></tr>
+      <tr><td style="color:#64748b; padding:0.25rem 0;">等级</td><td>${lvLabel}</td></tr>
+      <tr><td style="color:#64748b; padding:0.25rem 0;">有效天数</td><td>${daysMap[item.days] || item.days + '天'}</td></tr>
+      <tr><td style="color:#64748b; padding:0.25rem 0;">状态</td><td>${item.status === 'used' ? '<span style="color:#fb923c;">已使用</span>' : '<span style="color:#4ade80;">未使用</span>'}</td></tr>
+      <tr><td style="color:#64748b; padding:0.25rem 0;">创建者TG</td><td>${item.creator || '—'}</td></tr>
+      <tr><td style="color:#64748b; padding:0.25rem 0;">创建时间</td><td>${item.created_at || '—'}</td></tr>
+      <tr><td style="color:#64748b; padding:0.25rem 0;">使用者TG</td><td>${item.used_by || '—'}</td></tr>
+      <tr><td style="color:#64748b; padding:0.25rem 0;">使用时间</td><td>${item.used_time || '—'}</td></tr>
+    </table>`;
+  document.getElementById('codeDetailModal').style.display = 'flex';
+}
+
+function closeDetailModal() {
+  document.getElementById('codeDetailModal').style.display = 'none';
+}
+
+// ── 复制到剪贴板（兼容 HTTP 环境）────────────────────────────────────────────
+function _clipboardWrite(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
+  }
+  // 回退：用隐藏 textarea + execCommand
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(el);
+  return Promise.resolve();
+}
+
+// ── 复制单个码 ────────────────────────────────────────────────────────────────
+async function copyCode(code) {
+  try {
+    await _clipboardWrite(code);
+    showToast('已复制');
+  } catch(e) {
+    showToast('复制失败，请手动复制', false);
+  }
+}
+
+// ── 导出 ──────────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const type      = document.getElementById('filterType').value;
+  const status    = document.getElementById('filterStatus').value;
+  const days      = document.getElementById('filterDays').value;
+  const q         = document.getElementById('searchInput').value.trim();
+  const creatorTg = document.getElementById('filterCreatorTg').value.trim();
+  const usedByTg  = document.getElementById('filterUsedByTg').value.trim();
+  let url = `/admin/api/codes/export?type=${type}&status=${status}&q=${encodeURIComponent(q)}`;
+  if (days)      url += `&days=${days}`;
+  if (creatorTg) url += `&creator_tg=${encodeURIComponent(creatorTg)}`;
+  if (usedByTg)  url += `&used_by_tg=${encodeURIComponent(usedByTg)}`;
+  window.open(url, '_blank');
+}
+
+// ── 自动补全（TG ID 数字型）────────────────────────────────────────────────
+function acFetchTg(inputId, dropId, url) {
+  const q = document.getElementById(inputId).value.trim();
+  fetch(`${url}?q=${encodeURIComponent(q)}`)
+    .then(r => r.json())
+    .then(data => {
+      const drop = document.getElementById(dropId);
+      const items = data.items || [];
+      if (!items.length) { drop.style.display = 'none'; return; }
+      drop.innerHTML = '';
+      items.forEach(val => {
+        const div = document.createElement('div');
+        div.className = 'ac-item';
+        div.textContent = String(val);
+        div.onmousedown = e => e.preventDefault();
+        div.onclick = () => {
+          document.getElementById(inputId).value = String(val);
+          drop.style.display = 'none';
+        };
+        drop.appendChild(div);
+      });
+      drop.style.display = 'block';
+    }).catch(() => {});
+}
+
+function acBlur(dropId) {
+  setTimeout(() => {
+    const el = document.getElementById(dropId);
+    if (el) el.style.display = 'none';
+  }, 150);
+}
+
+// ── 初始化 ────────────────────────────────────────────────────────────────────
+loadStats();
+loadCodes(1);
+</script>
+{% endblock %}

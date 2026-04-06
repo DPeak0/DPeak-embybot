@@ -1,0 +1,234 @@
+{% extends "admin/layout.html" %}
+{% block title %}命令管理{% endblock %}
+{% block heading %}Bot 命令管理{% endblock %}
+
+{% block content %}
+<!-- 顶部操作栏 -->
+<div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+  <div style="display:flex; gap:0.5rem;" id="levelFilterBtns">
+    <button onclick="filterLevel('')"    id="fltr-all"   style="padding:0.375rem 0.875rem;border-radius:0.5rem;font-size:0.875rem;font-weight:500;cursor:pointer;border:none;background:#e879a0;color:#fff;">全部</button>
+    <button onclick="filterLevel('user')"  id="fltr-user"  style="padding:0.375rem 0.875rem;border-radius:0.5rem;font-size:0.875rem;font-weight:500;cursor:pointer;border:none;background:#334155;color:#cbd5e1;">普通用户</button>
+    <button onclick="filterLevel('admin')" id="fltr-admin" style="padding:0.375rem 0.875rem;border-radius:0.5rem;font-size:0.875rem;font-weight:500;cursor:pointer;border:none;background:#334155;color:#cbd5e1;">管理员</button>
+    <button onclick="filterLevel('owner')" id="fltr-owner" style="padding:0.375rem 0.875rem;border-radius:0.5rem;font-size:0.875rem;font-weight:500;cursor:pointer;border:none;background:#334155;color:#cbd5e1;">Owner</button>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:0.5rem;">
+    <button onclick="batchVisible(true)"  style="padding:0.375rem 0.875rem;border-radius:0.5rem;font-size:0.875rem;cursor:pointer;border:none;background:#16a34a;color:#fff;" title="开启全部过滤后命令">全部开启</button>
+    <button onclick="batchVisible(false)" style="padding:0.375rem 0.875rem;border-radius:0.5rem;font-size:0.875rem;cursor:pointer;border:none;background:#dc2626;color:#fff;" title="关闭全部过滤后命令">全部关闭</button>
+    <button onclick="saveAll()" id="saveBtn" style="padding:0.375rem 1.25rem;border-radius:0.5rem;font-size:0.875rem;font-weight:600;cursor:pointer;border:none;background:#e879a0;color:#fff;">
+      <i class="fa-solid fa-floppy-disk" style="margin-right:0.375rem;"></i>保存并刷新命令
+    </button>
+  </div>
+</div>
+
+<!-- 说明卡片 -->
+<div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:0.75rem;padding:0.875rem 1.25rem;margin-bottom:1.25rem;font-size:0.8125rem;color:#93c5fd;display:flex;align-items:flex-start;gap:0.625rem;">
+  <i class="fa-solid fa-circle-info" style="margin-top:0.1rem;flex-shrink:0;"></i>
+  <div>
+    <strong>命令开关与权限说明：</strong>
+    <strong>关闭</strong>后该命令对所有人不可见且无法使用（发送也无响应）。
+    <strong>可使用级别</strong>控制哪个级别以上的用户可以使用此命令：
+    <span style="color:#fde047;">普通用户</span> 所有人可用 →
+    <span style="color:#fb923c;">管理员</span> 仅管理员/Owner 可用 →
+    <span style="color:#f87171;">Owner</span> 仅 Owner 可用。
+    保存后立即生效并刷新 Telegram 命令菜单。
+  </div>
+</div>
+
+<!-- 命令表格 -->
+<div class="card" style="overflow:hidden;">
+  <div style="overflow-x:auto;">
+    <table style="width:100%;font-size:0.875rem;border-collapse:collapse;" id="cmdTable">
+      <thead>
+        <tr style="border-bottom:1px solid rgba(51,65,85,0.5);color:#94a3b8;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">
+          <th style="padding:0.75rem 1rem;text-align:left;width:180px;">命令</th>
+          <th style="padding:0.75rem 1rem;text-align:left;">描述</th>
+          <th style="padding:0.75rem 1rem;text-align:center;width:100px;">默认级别</th>
+          <th style="padding:0.75rem 1rem;text-align:center;width:130px;">可使用级别</th>
+          <th style="padding:0.75rem 1rem;text-align:center;width:90px;">命令开关</th>
+        </tr>
+      </thead>
+      <tbody id="cmdBody">
+        <tr><td colspan="5" style="padding:2rem;text-align:center;color:#64748b;">加载中…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 统计行 -->
+<div style="margin-top:0.875rem;font-size:0.8125rem;color:#64748b;" id="statsLine"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let allCmds = [];   // 从后端加载的完整数据
+let filterLv = '';  // 当前过滤级别
+
+const _LEVEL_COLOR = {
+  user:  { bg: 'rgba(34,197,94,0.12)',   color: '#86efac', label: '普通用户' },
+  admin: { bg: 'rgba(251,146,60,0.12)',  color: '#fb923c', label: '管理员'   },
+  owner: { bg: 'rgba(248,113,113,0.12)', color: '#f87171', label: 'Owner'    },
+};
+
+// ── 加载数据 ──────────────────────────────────────────────────────────────────
+async function loadCommands() {
+  try {
+    const data = await api('/admin/api/commands');
+    if (!data.ok) { showToast('加载失败', false); return; }
+    allCmds = data.commands;
+    renderTable();
+  } catch(e) {
+    showToast('加载命令列表失败', false);
+  }
+}
+
+// ── 渲染表格 ──────────────────────────────────────────────────────────────────
+function renderTable() {
+  const cmds = filterLv ? allCmds.filter(c => c.default_level === filterLv) : allCmds;
+  if (!cmds.length) {
+    document.getElementById('cmdBody').innerHTML =
+      `<tr><td colspan="5" style="padding:2rem;text-align:center;color:#64748b;">暂无命令</td></tr>`;
+    document.getElementById('statsLine').textContent = '';
+    return;
+  }
+
+  const rows = cmds.map(cmd => {
+    const dlv = _LEVEL_COLOR[cmd.default_level] || _LEVEL_COLOR.user;
+    const defaultBadge = `<span style="display:inline-flex;align-items:center;padding:0.125rem 0.625rem;border-radius:9999px;font-size:0.75rem;font-weight:500;background:${dlv.bg};color:${dlv.color};">${dlv.label}</span>`;
+
+    // 当前级别选择下拉框
+    const lvSelect = `
+      <select data-name="${cmd.name}" data-field="min_level"
+        onchange="onLevelChange(this)"
+        style="background:#0f172a;border:1px solid #475569;border-radius:0.375rem;padding:0.25rem 0.5rem;color:#e2e8f0;font-size:0.8125rem;cursor:pointer;">
+        <option value="user"  ${cmd.min_level === 'user'  ? 'selected' : ''}>普通用户</option>
+        <option value="admin" ${cmd.min_level === 'admin' ? 'selected' : ''}>管理员</option>
+        <option value="owner" ${cmd.min_level === 'owner' ? 'selected' : ''}>Owner</option>
+      </select>`;
+
+    // 显示/隐藏切换
+    const visToggle = `
+      <label style="display:inline-flex;align-items:center;cursor:pointer;gap:0.375rem;" title="${cmd.visible ? '点击关闭' : '点击开启'}">
+        <input type="checkbox" data-name="${cmd.name}" data-field="visible"
+          ${cmd.visible ? 'checked' : ''}
+          onchange="onVisibleChange(this)"
+          style="display:none;" />
+        <span id="vis-icon-${cmd.name}" style="
+          width:2.25rem;height:1.25rem;border-radius:9999px;
+          background:${cmd.visible ? '#16a34a' : '#475569'};
+          display:inline-flex;align-items:center;
+          padding:0.125rem;transition:background 0.2s;position:relative;">
+          <span style="
+            width:1rem;height:1rem;border-radius:9999px;background:#fff;
+            transition:transform 0.2s;
+            transform:translateX(${cmd.visible ? '1rem' : '0'});
+            display:block;">
+          </span>
+        </span>
+        <span id="vis-label-${cmd.name}" style="font-size:0.75rem;color:${cmd.visible ? '#86efac' : '#64748b'};">
+          ${cmd.visible ? '开启' : '关闭'}
+        </span>
+      </label>`;
+
+    const rowStyle = cmd.visible ? '' : 'opacity:0.45;';
+    return `
+      <tr id="row-${cmd.name}" style="border-bottom:1px solid rgba(51,65,85,0.3);${rowStyle}" data-default-level="${cmd.default_level}">
+        <td style="padding:0.75rem 1rem;">
+          <code style="background:rgba(51,65,85,0.6);padding:0.125rem 0.5rem;border-radius:0.375rem;font-size:0.875rem;color:#e2e8f0;">/${cmd.name}</code>
+        </td>
+        <td style="padding:0.75rem 1rem;color:#94a3b8;">${cmd.description}</td>
+        <td style="padding:0.75rem 1rem;text-align:center;">${defaultBadge}</td>
+        <td style="padding:0.75rem 1rem;text-align:center;">${lvSelect}</td>
+        <td style="padding:0.75rem 1rem;text-align:center;">${visToggle}</td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('cmdBody').innerHTML = rows;
+
+  const visCount = cmds.filter(c => c.visible).length;
+  document.getElementById('statsLine').textContent =
+    `共 ${cmds.length} 条命令，${visCount} 条已开启，${cmds.length - visCount} 条已关闭`;
+}
+
+// ── 事件处理 ──────────────────────────────────────────────────────────────────
+function onLevelChange(sel) {
+  const name = sel.dataset.name;
+  const val  = sel.value;
+  const cmd  = allCmds.find(c => c.name === name);
+  if (cmd) cmd.min_level = val;
+}
+
+function onVisibleChange(cb) {
+  const name    = cb.dataset.name;
+  const visible = cb.checked;
+  const cmd     = allCmds.find(c => c.name === name);
+  if (!cmd) return;
+  cmd.visible = visible;
+
+  // 更新 UI
+  const icon  = document.getElementById(`vis-icon-${name}`);
+  const label = document.getElementById(`vis-label-${name}`);
+  const dot   = icon?.querySelector('span');
+  const row   = document.getElementById(`row-${name}`);
+  if (icon)  icon.style.background = visible ? '#16a34a' : '#475569';
+  if (dot)   dot.style.transform   = visible ? 'translateX(1rem)' : 'translateX(0)';
+  if (label) { label.textContent = visible ? '开启' : '关闭'; label.style.color = visible ? '#86efac' : '#64748b'; }
+  if (row)   row.style.opacity = visible ? '1' : '0.45';
+}
+
+// ── 过滤 ──────────────────────────────────────────────────────────────────────
+function filterLevel(lv) {
+  filterLv = lv;
+  ['all','user','admin','owner'].forEach(k => {
+    const btn = document.getElementById(`fltr-${k}`);
+    if (!btn) return;
+    const active = (k === 'all' && lv === '') || k === lv;
+    btn.style.background = active ? '#e879a0' : '#334155';
+    btn.style.color      = active ? '#fff'    : '#cbd5e1';
+  });
+  renderTable();
+}
+
+// ── 批量操作 ──────────────────────────────────────────────────────────────────
+function batchVisible(visible) {
+  const cmds = filterLv ? allCmds.filter(c => c.default_level === filterLv) : allCmds;
+  cmds.forEach(cmd => { cmd.visible = visible; });
+  renderTable();
+}
+
+// ── 保存 ──────────────────────────────────────────────────────────────────────
+async function saveAll() {
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:0.375rem;"></i>保存中…';
+
+  // 从 allCmds 收集当前状态（包含已被过滤器隐藏的行，因为数据在 allCmds 中）
+  // 同时从 DOM 中读取最新的 select 值（处理用户未触发 onchange 的情况）
+  document.querySelectorAll('[data-field="min_level"]').forEach(sel => {
+    const name = sel.dataset.name;
+    const cmd  = allCmds.find(c => c.name === name);
+    if (cmd) cmd.min_level = sel.value;
+  });
+  document.querySelectorAll('[data-field="visible"]').forEach(cb => {
+    const name = cb.dataset.name;
+    const cmd  = allCmds.find(c => c.name === name);
+    if (cmd) cmd.visible = cb.checked;
+  });
+
+  try {
+    const data = await api('/admin/api/commands', {
+      method: 'POST',
+      body: JSON.stringify({ commands: allCmds.map(c => ({ name: c.name, visible: c.visible, min_level: c.min_level })) }),
+    });
+    showToast(data.msg || '操作完成', data.ok);
+  } catch(e) {
+    showToast('保存失败', false);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk" style="margin-right:0.375rem;"></i>保存并刷新命令';
+  }
+}
+
+// ── 初始化 ────────────────────────────────────────────────────────────────────
+loadCommands();
+</script>
+{% endblock %}

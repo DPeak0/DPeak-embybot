@@ -1,0 +1,425 @@
+{% extends "admin/layout.html" %}
+{% block title %}求片管理{% endblock %}
+{% block heading %}求片管理{% endblock %}
+
+{% block content %}
+<!-- 统计卡片 -->
+<div id="statsRow" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-bottom:1.5rem;"></div>
+
+<!-- 过滤栏 -->
+<div class="card p-4 mb-4" style="display:flex; flex-wrap:wrap; align-items:center; gap:0.75rem;">
+  <div style="display:flex; gap:0.5rem; flex-wrap:wrap;" id="filterBtns">
+    {% for s, label in [('', '全部'), ('pending', '待审核'), ('processing', '处理中'), ('completed', '已入库'), ('rejected', '已拒绝')] %}
+    <button
+      onclick="filterStatus('{{ s }}')"
+      id="btn-{{ s or 'all' }}"
+      style="padding:0.375rem 0.875rem; border-radius:0.5rem; font-size:0.875rem; font-weight:500; cursor:pointer; border:none; transition:background 0.15s; background:#334155; color:#cbd5e1;"
+    >{{ label }}</button>
+    {% endfor %}
+  </div>
+  <div style="margin-left:auto; display:flex; align-items:center; gap:0.5rem;">
+    <input id="searchKw" type="text" placeholder="搜索影片名…" onkeydown="if(event.key==='Enter')doSearch()"
+      style="background:#1e293b; border:1px solid #475569; border-radius:0.375rem; color:#e2e8f0; font-size:0.875rem; padding:0.375rem 0.75rem; outline:none; width:160px;" />
+    <button onclick="doSearch()" style="padding:0.375rem 0.75rem; border-radius:0.375rem; font-size:0.875rem; background:#475569; color:#e2e8f0; border:none; cursor:pointer;">搜索</button>
+    <button onclick="refreshAll()" title="刷新" style="padding:0.375rem 0.625rem; border-radius:0.375rem; font-size:0.875rem; background:#334155; color:#94a3b8; border:none; cursor:pointer;"><i class="fa-solid fa-rotate-right"></i></button>
+    <span style="font-size:0.875rem; color:#94a3b8; margin-left:0.25rem;">共 <span id="total">0</span> 条</span>
+  </div>
+</div>
+
+<!-- 批量操作栏（默认隐藏，有勾选时显示） -->
+<div id="batchBar" style="display:none; background:#1e3a5f; border:1px solid #2563eb; border-radius:0.75rem; padding:0.75rem 1rem; margin-bottom:1rem; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+  <span style="font-size:0.875rem; color:#93c5fd; font-weight:600;">已选 <span id="selectedCount">0</span> 条</span>
+  <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-left:0.5rem;">
+    <button onclick="batchAction('approve')"  style="font-size:0.8125rem;background:#16a34a;color:#fff;padding:0.25rem 0.75rem;border-radius:0.375rem;border:none;cursor:pointer;">✓ 批量审批</button>
+    <button onclick="batchAction('complete')" style="font-size:0.8125rem;background:#7c3aed;color:#fff;padding:0.25rem 0.75rem;border-radius:0.375rem;border:none;cursor:pointer;">📦 批量入库</button>
+    <button onclick="batchAction('reject')"   style="font-size:0.8125rem;background:#b45309;color:#fff;padding:0.25rem 0.75rem;border-radius:0.375rem;border:none;cursor:pointer;">✗ 批量拒绝</button>
+    <button onclick="batchAction('delete')"   style="font-size:0.8125rem;background:#dc2626;color:#fff;padding:0.25rem 0.75rem;border-radius:0.375rem;border:none;cursor:pointer;"><i class="fa-solid fa-trash-can"></i> 批量删除</button>
+  </div>
+  <button onclick="clearSelection()" style="margin-left:auto;font-size:0.8125rem;background:transparent;color:#64748b;border:none;cursor:pointer;">取消</button>
+</div>
+
+<!-- 表格 -->
+<div class="card" style="overflow:hidden;">
+  <div style="overflow-x:auto;">
+    <table style="width:100%; font-size:0.875rem; border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:1px solid rgba(51,65,85,0.5); color:#94a3b8; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
+          <th style="padding:0.75rem 0.5rem 0.75rem 1rem; text-align:left; width:36px;">
+            <input type="checkbox" id="checkAll" onchange="toggleSelectAll(this.checked)"
+              style="width:15px;height:15px;cursor:pointer;accent-color:#e879a0;" />
+          </th>
+          <th style="padding:0.75rem 1rem; text-align:left;">媒体信息</th>
+          <th style="padding:0.75rem 1rem; text-align:left;">用户</th>
+          <th style="padding:0.75rem 1rem; text-align:left;">状态</th>
+          <th style="padding:0.75rem 1rem; text-align:left; min-width:120px;">用户备注</th>
+          <th style="padding:0.75rem 1rem; text-align:left; min-width:120px;">管理员备注</th>
+          <th style="padding:0.75rem 1rem; text-align:left;">请求时间</th>
+          <th style="padding:0.75rem 1rem; text-align:left; min-width:220px;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="requestList">
+        <tr><td colspan="8" style="padding:2rem; text-align:center; color:#64748b;">加载中…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 分页 -->
+<div style="display:flex; justify-content:center; gap:0.5rem; margin-top:1rem;" id="pagination"></div>
+
+<!-- ── 操作确认弹窗 ────────────────────────────────────────────────────────── -->
+<div id="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(4px); align-items:center; justify-content:center; z-index:50; padding:1rem;">
+  <div style="background:#1e293b; border-radius:1rem; border:1px solid rgba(51,65,85,0.5); box-shadow:0 20px 60px rgba(0,0,0,0.5); padding:1.5rem; width:100%; max-width:460px;">
+    <h3 style="font-size:1.0625rem; font-weight:700; color:#fff; margin:0 0 0.25rem;" id="modalTitle">确认操作</h3>
+    <!-- 影片信息摘要 -->
+    <div id="modalInfo" style="font-size:0.8125rem; color:#94a3b8; margin-bottom:1rem;"></div>
+    <label style="display:block; font-size:0.8125rem; color:#94a3b8; margin-bottom:0.375rem;">管理员备注（可选）</label>
+    <textarea id="modalNote" rows="3" placeholder="可选，输入管理员备注…"
+      style="width:100%; background:rgba(51,65,85,0.5); border:1px solid #475569; border-radius:0.5rem; padding:0.5rem 0.75rem; color:#e2e8f0; font-size:0.875rem; resize:vertical; margin-bottom:1rem; box-sizing:border-box; font-family:inherit;"
+    ></textarea>
+    <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+      <button onclick="closeModal()" style="padding:0.5rem 1.25rem; border-radius:0.5rem; background:#334155; color:#cbd5e1; border:none; cursor:pointer; font-size:0.875rem;">取消</button>
+      <button id="modalConfirm" style="padding:0.5rem 1.25rem; border-radius:0.5rem; color:#fff; border:none; cursor:pointer; font-size:0.875rem; font-weight:600;">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 编辑弹窗 ───────────────────────────────────────────────────────────── -->
+<div id="editModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(4px); align-items:center; justify-content:center; z-index:50; padding:1rem;">
+  <div style="background:#1e293b; border-radius:1rem; border:1px solid rgba(51,65,85,0.5); box-shadow:0 20px 60px rgba(0,0,0,0.5); padding:1.5rem; width:100%; max-width:460px;">
+    <h3 style="font-size:1.0625rem; font-weight:700; color:#fff; margin:0 0 1rem;">修改申请</h3>
+    <input type="hidden" id="editId" />
+    <label style="display:block; font-size:0.8125rem; color:#94a3b8; margin-bottom:0.375rem;">状态</label>
+    <select id="editStatus"
+      style="width:100%; background:#0f172a; border:1px solid #475569; border-radius:0.5rem; padding:0.5rem 0.75rem; color:#e2e8f0; font-size:0.875rem; margin-bottom:1rem; box-sizing:border-box;">
+      <option value="pending">待审核</option>
+      <option value="processing">处理中</option>
+      <option value="completed">已入库</option>
+      <option value="rejected">已拒绝</option>
+    </select>
+    <label style="display:block; font-size:0.8125rem; color:#94a3b8; margin-bottom:0.375rem;">管理员备注</label>
+    <textarea id="editNote" rows="3" placeholder="管理员备注（留空则不修改）"
+      style="width:100%; background:rgba(51,65,85,0.5); border:1px solid #475569; border-radius:0.5rem; padding:0.5rem 0.75rem; color:#e2e8f0; font-size:0.875rem; resize:vertical; margin-bottom:1rem; box-sizing:border-box; font-family:inherit;"
+    ></textarea>
+    <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+      <button onclick="closeEditModal()" style="padding:0.5rem 1.25rem; border-radius:0.5rem; background:#334155; color:#cbd5e1; border:none; cursor:pointer; font-size:0.875rem;">取消</button>
+      <button onclick="submitEdit()" style="padding:0.5rem 1.25rem; border-radius:0.5rem; background:#e879a0; color:#fff; border:none; cursor:pointer; font-size:0.875rem; font-weight:600;">保存</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentStatus = '';
+let currentKeyword = '';
+let currentPage = 1;
+const pageSize = 20;
+// 缓存当前页请求数据，避免在 onclick 属性中直接嵌入 JSON（引号/换行会破坏语法）
+const requestCache = {};
+
+const statusStyle = {
+  pending:    { bg: 'rgba(234,179,8,0.15)',   color: '#fde047', label: '待审核' },
+  processing: { bg: 'rgba(59,130,246,0.15)',  color: '#93c5fd', label: '处理中' },
+  completed:  { bg: 'rgba(34,197,94,0.15)',   color: '#86efac', label: '已入库' },
+  rejected:   { bg: 'rgba(239,68,68,0.15)',   color: '#fca5a5', label: '已拒绝' },
+};
+
+// ── 统计卡片 ────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const data = await api('/admin/api/requests/stats');
+    const cards = [
+      { label: '总计',   value: data.total,      color: '#e2e8f0' },
+      { label: '待审核', value: data.pending,     color: '#fde047' },
+      { label: '处理中', value: data.processing,  color: '#93c5fd' },
+      { label: '已入库', value: data.completed,   color: '#86efac' },
+    ];
+    document.getElementById('statsRow').innerHTML = cards.map(c => `
+      <div class="card" style="padding:1.25rem; cursor:default;">
+        <div style="font-size:0.8125rem; color:#94a3b8; margin-bottom:0.5rem;">${c.label}</div>
+        <div style="font-size:2rem; font-weight:700; color:${c.color}; line-height:1;">${c.value}</div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+// ── 过滤 ────────────────────────────────────────────────────────────────────
+function filterStatus(s) {
+  currentStatus = s;
+  currentPage = 1;
+  ['all', 'pending', 'processing', 'completed', 'rejected'].forEach(k => {
+    const btn = document.getElementById(`btn-${k}`);
+    if (!btn) return;
+    const active = (k === 'all' && s === '') || k === s;
+    btn.style.background = active ? '#e879a0' : '#334155';
+    btn.style.color = active ? '#fff' : '#cbd5e1';
+  });
+  loadRequests();
+}
+
+function doSearch() {
+  currentKeyword = document.getElementById('searchKw').value.trim();
+  currentPage = 1;
+  loadRequests();
+}
+
+// ── 下拉删除按钮开关 ─────────────────────────────────────────────────────────
+function toggleDeleteBtn(rowId) {
+  const btn = document.getElementById(`del-${rowId}`);
+  if (!btn) return;
+  const visible = btn.style.display !== 'none';
+  // 先关闭所有其他
+  document.querySelectorAll('[id^="del-"]').forEach(b => { b.style.display = 'none'; });
+  btn.style.display = visible ? 'none' : 'inline-flex';
+}
+
+// 点击其他地方关闭
+document.addEventListener('click', e => {
+  if (!e.target.closest('[data-more]') && !e.target.closest('[id^="del-"]')) {
+    document.querySelectorAll('[id^="del-"]').forEach(b => { b.style.display = 'none'; });
+  }
+});
+
+// ── 构建操作栏 ──────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function buildActions(r) {
+  const btnStyle = (bg) => `font-size:0.75rem;background:${bg};color:#fff;padding:0.25rem 0.625rem;border-radius:0.375rem;border:none;cursor:pointer;margin-right:4px;`;
+  // 使用 data-id 引用缓存，避免在 onclick 中嵌入 JSON
+  const moreBtn = `<button data-more onclick="toggleDeleteBtn(${r.id})" style="${btnStyle('#475569')} position:relative;" title="更多">⋯</button>`;
+  const delBtn = `<button id="del-${r.id}" onclick="confirmDelete(${r.id})" style="${btnStyle('#dc2626')} display:none;"><i class='fa-solid fa-trash-can' style='margin-right:3px;'></i>删除</button>`;
+  const editBtn = `<button onclick="openEditModal(${r.id})" style="${btnStyle('#0e7490')}" title="修改"><i class='fa-solid fa-pen'></i> 修改</button>`;
+
+  let primary = '';
+  if (r.status === 'pending') {
+    primary = `<button onclick="openModal(${r.id},'approve')" style="${btnStyle('#16a34a')}">✓ 同意</button>`
+            + `<button onclick="openModal(${r.id},'reject')" style="${btnStyle('#dc2626')}">✗ 拒绝</button>`;
+  } else if (r.status === 'processing') {
+    primary = `<button onclick="openModal(${r.id},'complete')" style="${btnStyle('#7c3aed')}">📦 入库</button>`
+            + `<button onclick="openModal(${r.id},'reject')" style="${btnStyle('#dc2626')}">✗ 拒绝</button>`;
+  }
+
+  return `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;position:relative;">
+    ${primary}${editBtn}${moreBtn}${delBtn}
+  </div>`;
+}
+
+// ── 加载列表 ────────────────────────────────────────────────────────────────
+async function loadRequests() {
+  const url = `/admin/api/requests?status=${currentStatus}&keyword=${encodeURIComponent(currentKeyword)}&page=${currentPage}&page_size=${pageSize}`;
+  const data = await api(url);
+  document.getElementById('total').textContent = data.total || 0;
+
+  // 缓存数据，供 openModal / openEditModal / confirmDelete 使用
+  (data.items || []).forEach(r => { requestCache[r.id] = r; });
+
+  const rows = (data.items || []).map(r => {
+    const st = statusStyle[r.status] || { bg: '#334155', color: '#cbd5e1', label: r.status };
+    const badge = `<span style="display:inline-flex;align-items:center;padding:0.125rem 0.625rem;border-radius:9999px;font-size:0.75rem;font-weight:500;background:${st.bg};color:${st.color};">${st.label}</span>`;
+    const poster = r.poster
+      ? `<img src="${r.poster}" style="width:40px;height:56px;object-fit:cover;border-radius:4px;" />`
+      : `<div style="width:40px;height:56px;background:#334155;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#64748b;"><i class="fa-solid fa-image"></i></div>`;
+    const userNote = r.user_note
+      ? `<span style="color:#e2e8f0;font-size:0.8125rem;" title="${escHtml(r.user_note)}">${r.user_note.length>20 ? r.user_note.slice(0,20)+'…' : r.user_note}</span>`
+      : `<span style="color:#475569;">-</span>`;
+    const adminNote = r.note
+      ? `<span style="color:#93c5fd;font-size:0.8125rem;" title="${escHtml(r.note)}">${r.note.length>20 ? r.note.slice(0,20)+'…' : r.note}</span>`
+      : `<span style="color:#475569;">-</span>`;
+    return `
+      <tr id="row-${r.id}" style="border-bottom:1px solid rgba(51,65,85,0.3);">
+        <td style="padding:0.75rem 0.5rem 0.75rem 1rem;">
+          <input type="checkbox" class="row-check" data-id="${r.id}" onchange="toggleRow(this)"
+            style="width:15px;height:15px;cursor:pointer;accent-color:#e879a0;" />
+        </td>
+        <td style="padding:0.75rem 1rem;">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            ${poster}
+            <div>
+              <p style="font-weight:500;color:#fff;margin:0 0 2px;">${r.title || '-'}</p>
+              <p style="color:#94a3b8;font-size:0.75rem;margin:0 0 2px;">${r.orig_title || ''} ${r.year ? '('+r.year+')' : ''}</p>
+              <p style="color:#64748b;font-size:0.75rem;margin:0;">${r.media_type === 'movie' ? '🎬 电影' : '📺 剧集'} · TMDB: ${r.tmdb_id || '-'}</p>
+            </div>
+          </div>
+        </td>
+        <td style="padding:0.75rem 1rem;color:#94a3b8;font-size:0.8125rem;">${r.emby_name || r.tg}</td>
+        <td style="padding:0.75rem 1rem;">${badge}</td>
+        <td style="padding:0.75rem 1rem;">${userNote}</td>
+        <td style="padding:0.75rem 1rem;">${adminNote}</td>
+        <td style="padding:0.75rem 1rem;color:#94a3b8;font-size:0.75rem;white-space:nowrap;">${r.created_at || ''}</td>
+        <td style="padding:0.75rem 1rem;">${buildActions(r)}</td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('requestList').innerHTML = rows ||
+    `<tr><td colspan="8" style="padding:2rem;text-align:center;color:#64748b;">暂无数据</td></tr>`;
+  // 重置全选复选框
+  document.getElementById('checkAll').checked = false;
+  updateBatchBar();
+
+  const totalPages = Math.ceil((data.total || 0) / pageSize);
+  let pg = '';
+  for (let i = 1; i <= totalPages; i++) {
+    const active = i === currentPage;
+    pg += `<button onclick="goPage(${i})" style="padding:0.375rem 0.75rem;border-radius:0.375rem;font-size:0.875rem;border:none;cursor:pointer;background:${active ? '#e879a0' : '#334155'};color:${active ? '#fff' : '#cbd5e1'};">${i}</button>`;
+  }
+  document.getElementById('pagination').innerHTML = pg;
+}
+
+function goPage(p) { currentPage = p; loadRequests(); }
+
+// ── 操作确认弹窗 ────────────────────────────────────────────────────────────
+let pendingAction = null;
+
+const modalConfig = {
+  approve:  { title: '审核通过',   color: '#16a34a', label: '确认审批' },
+  complete: { title: '标记已入库', color: '#7c3aed', label: '确认入库' },
+  reject:   { title: '拒绝申请',   color: '#dc2626', label: '确认拒绝' },
+};
+
+function openModal(id, action) {
+  pendingAction = { id, action };
+  const r = requestCache[id] || {};
+  const cfg = modalConfig[action] || {};
+  document.getElementById('modalTitle').textContent = cfg.title || '操作确认';
+  const mediaType = r.media_type === 'movie' ? '电影' : '剧集';
+  const user = r.emby_name || r.tg || '';
+  document.getElementById('modalInfo').innerHTML =
+    `<strong style="color:#e2e8f0;">${r.title || ''}</strong>`
+    + `<br>${mediaType} | 用户: ${user}`;
+  document.getElementById('modalNote').value = '';
+  const btn = document.getElementById('modalConfirm');
+  btn.style.background = cfg.color || '#e879a0';
+  btn.textContent = cfg.label || '确认';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+  pendingAction = null;
+}
+
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+
+document.getElementById('modalConfirm').addEventListener('click', async () => {
+  if (!pendingAction) return;
+  const note = document.getElementById('modalNote').value.trim();
+  const { id, action } = pendingAction;
+  closeModal();
+  const data = await api(`/admin/api/requests/${id}/${action}`, { method: 'POST', body: JSON.stringify({ note }) });
+  showToast(data.msg || '操作完成', data.ok);
+  if (data.ok) { loadRequests(); loadStats(); }
+});
+
+// ── 编辑弹窗 ────────────────────────────────────────────────────────────────
+function openEditModal(id) {
+  const r = requestCache[id] || {};
+  document.getElementById('editId').value = id;
+  document.getElementById('editStatus').value = r.status || 'pending';
+  document.getElementById('editNote').value = r.note || '';
+  document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').style.display = 'none';
+}
+
+document.getElementById('editModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('editModal')) closeEditModal();
+});
+
+async function submitEdit() {
+  const id = document.getElementById('editId').value;
+  const status = document.getElementById('editStatus').value;
+  const note = document.getElementById('editNote').value;
+  closeEditModal();
+  const data = await api(`/admin/api/requests/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status, note }),
+  });
+  showToast(data.msg || '操作完成', data.ok);
+  if (data.ok) { loadRequests(); loadStats(); }
+}
+
+// ── 删除确认 ────────────────────────────────────────────────────────────────
+async function confirmDelete(id) {
+  const r = requestCache[id] || {};
+  const title = r.title || `ID ${id}`;
+  if (!confirm(`确定要删除「${title}」的申请记录吗？此操作不可撤销。`)) return;
+  const data = await api(`/admin/api/requests/${id}`, { method: 'DELETE' });
+  showToast(data.msg || '操作完成', data.ok);
+  if (data.ok) { loadRequests(); loadStats(); }
+}
+
+// ── 多选 & 批量操作 ─────────────────────────────────────────────────────────
+function getSelectedIds() {
+  return Array.from(document.querySelectorAll('.row-check:checked')).map(cb => parseInt(cb.dataset.id));
+}
+
+function updateBatchBar() {
+  const ids = getSelectedIds();
+  const bar = document.getElementById('batchBar');
+  document.getElementById('selectedCount').textContent = ids.length;
+  bar.style.display = ids.length > 0 ? 'flex' : 'none';
+  // 更新全选框三态
+  const allBoxes = document.querySelectorAll('.row-check');
+  const checkAll = document.getElementById('checkAll');
+  if (allBoxes.length === 0) {
+    checkAll.checked = false;
+    checkAll.indeterminate = false;
+  } else if (ids.length === 0) {
+    checkAll.checked = false;
+    checkAll.indeterminate = false;
+  } else if (ids.length === allBoxes.length) {
+    checkAll.checked = true;
+    checkAll.indeterminate = false;
+  } else {
+    checkAll.checked = false;
+    checkAll.indeterminate = true;
+  }
+}
+
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.row-check').forEach(cb => { cb.checked = checked; });
+  updateBatchBar();
+}
+
+function toggleRow(cb) {
+  updateBatchBar();
+}
+
+function clearSelection() {
+  document.querySelectorAll('.row-check').forEach(cb => { cb.checked = false; });
+  document.getElementById('checkAll').checked = false;
+  document.getElementById('checkAll').indeterminate = false;
+  updateBatchBar();
+}
+
+async function batchAction(action) {
+  const ids = getSelectedIds();
+  if (!ids.length) return;
+  const labels = { approve: '审批通过', complete: '标记入库', reject: '拒绝', delete: '删除' };
+  const label = labels[action] || action;
+  if (!confirm(`确定要对选中的 ${ids.length} 条申请执行「${label}」操作吗？`)) return;
+  const data = await api('/admin/api/requests/batch', {
+    method: 'POST',
+    body: JSON.stringify({ ids, action, note: '' }),
+  });
+  showToast(data.msg || '操作完成', data.ok);
+  if (data.ok) { clearSelection(); loadRequests(); loadStats(); }
+}
+
+function refreshAll() {
+  loadStats();
+  loadRequests();
+}
+
+// ── 初始化 ──────────────────────────────────────────────────────────────────
+loadStats();
+filterStatus('pending');
+</script>
+{% endblock %}
