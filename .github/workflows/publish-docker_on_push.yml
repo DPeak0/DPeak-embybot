@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - dev
-      - master
+      - main
 
 env:
   REGISTRY: crpi-euihr92xl17baj83.cn-shenzhen.personal.cr.aliyuncs.com
@@ -43,8 +43,8 @@ jobs:
           tags: |
             type=raw,value=dev,enable=${{ github.ref_name == 'dev' }}
             type=raw,value=dev-{{sha}},enable=${{ github.ref_name == 'dev' }}
-            type=raw,value=latest,enable=${{ github.ref_name == 'master' }}
-            type=raw,value={{sha}},enable=${{ github.ref_name == 'master' }}
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+            type=raw,value={{sha}},enable=${{ github.ref_name == 'main' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
