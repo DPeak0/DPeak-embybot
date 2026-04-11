@@ -1,19 +1,22 @@
-name: Publish Release Docker Image
+name: Publish Branch Docker Images
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+      - master
+
+env:
+  REGISTRY: crpi-euihr92xl17baj83.cn-shenzhen.personal.cr.aliyuncs.com
+  IMAGE_NAME: dpeak/embyboos
 
 jobs:
   push_to_registry:
-    name: Build and push release image
+    name: Build and push branch image
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
-    env:
-      REGISTRY: crpi-euihr92xl17baj83.cn-shenzhen.personal.cr.aliyuncs.com
-      IMAGE_NAME: dpeak/embyboos
 
     steps:
       - name: Checkout
@@ -38,7 +41,10 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ github.event.release.tag_name }}
+            type=raw,value=dev,enable=${{ github.ref_name == 'dev' }}
+            type=raw,value=dev-{{sha}},enable=${{ github.ref_name == 'dev' }}
+            type=raw,value=latest,enable=${{ github.ref_name == 'master' }}
+            type=raw,value={{sha}},enable=${{ github.ref_name == 'master' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6

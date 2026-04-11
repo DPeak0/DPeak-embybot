@@ -1,0 +1,17 @@
+.git
+.github
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+*.session
+*.session-journal
+*.log
+.env
+log/
+config.json
+nginx/
+docker-compose.yml
+build.sh
+logo.png
