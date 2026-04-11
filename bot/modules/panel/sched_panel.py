@@ -1,5 +1,6 @@
 import asyncio
 import os
+import shlex
 
 import requests
 from pyrogram import filters
@@ -224,16 +225,19 @@ async def update_bot(force: bool = False, msg: Message = None, manual: bool = Fa
     """
     # print("update")
     if not auto_update.status and not manual: return
-    commit_url = f"https://api.github.com/repos/{auto_update.git_repo}/commits?per_page=1"
+    track_branch = auto_update.branch or "main"
+    quoted_branch = shlex.quote(track_branch)
+    commit_url = f"https://api.github.com/repos/{auto_update.git_repo}/commits/{track_branch}"
     resp = requests.get(commit_url)
     if resp.status_code == 200:
-        latest_commit = resp.json()[0]["sha"]
+        latest_commit = resp.json()["sha"]
         if latest_commit != auto_update.commit_sha:
-            up_description = resp.json()[0]["commit"]["message"]
-            await execute("git fetch --all")
+            up_description = resp.json()["commit"]["message"]
+            await execute(f"git fetch origin {quoted_branch}")
             if force:  # 默认不重置，保留本地更改
-                await execute("git reset --hard origin/master")
-            await execute("git pull --all")
+                await execute(f"git reset --hard origin/{quoted_branch}")
+            else:
+                await execute(f"git pull --ff-only origin {quoted_branch}")
             # await execute(f"{executable} -m pip install --upgrade -r requirements.txt")
             await execute(f"{executable} -m pip install  -r requirements.txt")
             text = '【AutoUpdate_Bot】运行成功，已更新bot代码。重启bot中...'
@@ -254,7 +258,7 @@ async def update_bot(force: bool = False, msg: Message = None, manual: bool = Fa
             LOGGER.info(message)
 
     else:
-        text = '【AutoUpdate_Bot】失败，请检查 git_repo 是否正确，形如 `berry8838/Sakura_embyboss`'
+        text = '【AutoUpdate_Bot】失败，请检查 git_repo / branch 是否正确，形如 `DPeak0/DPeak-EmbyBot` + `main`'
         await bot.send_message(chat_id=group[0], text=text) if not msg else await msg.edit(text)
         LOGGER.info(text)
 
