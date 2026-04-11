@@ -1,7 +1,7 @@
 version: '3'
 services:
   embyboss:
-    image: crpi-euihr92xl17baj83.cn-shenzhen.personal.cr.aliyuncs.com/dpeak/embyboos:latest
+    image: ghcr.io/dpeak0/dpeak-embybot:latest
     container_name: embyboss
     restart: always
     network_mode: host
