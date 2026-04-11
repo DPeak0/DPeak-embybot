@@ -258,7 +258,7 @@ async def update_bot(force: bool = False, msg: Message = None, manual: bool = Fa
             LOGGER.info(message)
 
     else:
-        text = '【AutoUpdate_Bot】失败，请检查 git_repo / branch 是否正确，形如 `DPeak0/DPeak-EmbyBot` + `main`'
+        text = '【AutoUpdate_Bot】失败，请检查 git_repo / branch 是否正确，形如 `DPeak0/DPeak-embybot` + `main`'
         await bot.send_message(chat_id=group[0], text=text) if not msg else await msg.edit(text)
         LOGGER.info(text)
 

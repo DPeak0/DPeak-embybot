@@ -125,7 +125,7 @@ class MP(BaseModel):
 
 class AutoUpdate(BaseModel):
     status: bool = True
-    git_repo: Optional[str] = "DPeak0/DPeak-EmbyBot"  # github仓库名/魔改的请填自己的仓库
+    git_repo: Optional[str] = "DPeak0/DPeak-embybot"  # github仓库名/魔改的请填自己的仓库
     branch: Optional[str] = "main"  # 自动更新显式跟踪的分支
     commit_sha: Optional[str] = None  # 最近一次commit
     up_description: Optional[str] = None  # 更新描述
