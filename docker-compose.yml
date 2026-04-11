@@ -1,7 +1,6 @@
-version: '3'
 services:
   embyboss:
-    image: ghcr.io/dpeak0/dpeak-embybot:latest
+    image: ghcr.io/dpeak0/dpeak-embybot-v2:latest
     container_name: embyboss
     restart: always
     network_mode: host

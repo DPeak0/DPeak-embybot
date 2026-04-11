@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: dpeak0/dpeak-embybot
+  IMAGE_NAME: dpeak0/dpeak-embybot-v2
   REPOSITORY_URL: https://github.com/DPeak0/DPeak-embybot
 
 jobs:
