@@ -10,6 +10,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: dpeak0/dpeak-embybot
+  REPOSITORY_URL: https://github.com/DPeak0/DPeak-embybot
 
 jobs:
   push_to_registry:
@@ -46,6 +47,13 @@ jobs:
             type=raw,value=dev-{{sha}},enable=${{ github.ref_name == 'dev' }}
             type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
             type=raw,value={{sha}},enable=${{ github.ref_name == 'main' }}
+          labels: |
+            org.opencontainers.image.source=${{ env.REPOSITORY_URL }}
+            org.opencontainers.image.url=${{ env.REPOSITORY_URL }}
+            org.opencontainers.image.title=DPeak-embybot
+            org.opencontainers.image.description=Telegram bot and web panel for Emby operations
+          annotations: |
+            org.opencontainers.image.source=${{ env.REPOSITORY_URL }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -56,5 +64,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
