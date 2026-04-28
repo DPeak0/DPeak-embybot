@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/commands")
 # default_level: "user" / "admin" / "owner"
 MASTER_COMMANDS: List[Dict[str, str]] = [
     # ── 用户命令 ──
-    {"name": "start",               "description": "[私聊] 开启用户面板",                   "default_level": "user"},
+    {"name": "start",               "description": "[私聊] 开启账号管理",                   "default_level": "user"},
     {"name": "myinfo",              "description": "[用户] 查看状态",                       "default_level": "user"},
     {"name": "count",               "description": "[用户] 媒体库数量",                     "default_level": "user"},
     {"name": "red",                 "description": "[用户/禁言] 发红包",                    "default_level": "user"},

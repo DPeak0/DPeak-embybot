@@ -248,12 +248,38 @@ class GamePlayerBossKill(Base):
     __table_args__ = (UniqueConstraint('tg', 'boss_id'),)
 
 
+class GameMigrationMeta(Base):
+    """游戏数据迁移标记，确保涉及玩家数据的迁移只执行一次。"""
+    __tablename__ = 'game_migration_meta'
+
+    key = Column(String(50), primary_key=True)
+    applied_at = Column(DateTime, default=datetime.now)
+    note = Column(String(255), nullable=True)
+
+
 # ─────────────────────────── 创建表 ───────────────────────────────────────────
 
 for _model in [GamePlayer, GameInventory, GameRaid, GameRaidParticipant,
                GameBossConfig, GameItemConfig, GameLootEntry, GameShopEntry,
-               GameRealmConfig, GameMajorRealmConfig, GamePlayerBossKill]:
+               GameRealmConfig, GameMajorRealmConfig, GamePlayerBossKill,
+               GameMigrationMeta]:
     _model.__table__.create(bind=engine, checkfirst=True)
+
+
+def _is_game_migration_applied(key: str) -> bool:
+    with Session() as session:
+        return session.query(GameMigrationMeta).filter(GameMigrationMeta.key == key).first() is not None
+
+
+def _mark_game_migration_applied(key: str, note: str = "") -> None:
+    with Session() as session:
+        row = session.query(GameMigrationMeta).filter(GameMigrationMeta.key == key).first()
+        if row:
+            row.note = note or row.note
+            row.applied_at = datetime.now()
+        else:
+            session.add(GameMigrationMeta(key=key, note=note or None))
+        session.commit()
 
 
 def _migrate_game_v2():
@@ -378,14 +404,24 @@ def _migrate_game_v7():
     - 所有玩家 realm +1（原练气一层玩家变为新索引1）
     - 同步更新 BOSS 推荐境界 + 突破丹药境界范围
     """
+    migration_key = "game_v7_realm_shift"
+    if _is_game_migration_applied(migration_key):
+        return
     try:
         with engine.connect() as conn:
-            # 检测是否已迁移（肉体凡胎是否已存在）
+            total_rows = conn.execute(sa_text(
+                "SELECT COUNT(*) FROM game_realm_config"
+            )).scalar() or 0
             result = conn.execute(sa_text(
                 "SELECT COUNT(*) FROM game_realm_config WHERE name='肉体凡胎'"
             ))
             if result.scalar() > 0:
+                _mark_game_migration_applied(migration_key, "detected 肉体凡胎 realm config")
                 return  # 已迁移，跳过
+            if total_rows == 0:
+                LOGGER.warning("【游戏迁移 v7】game_realm_config 为空，跳过 realm +1 以避免重复抬升玩家境界")
+                _mark_game_migration_applied(migration_key, "skipped on empty realm config")
+                return
         LOGGER.info("【游戏迁移 v7】开始添加肉体凡胎境界...")
         with engine.connect() as conn:
             # 1. 所有境界索引 +1（降序更新，避免唯一约束冲突）
@@ -425,12 +461,13 @@ def _migrate_game_v7():
             max_exp=50, base_max_hp=50, base_attack=5, base_defense=3,
             sort_order=0, enabled=True
         )
+        _mark_game_migration_applied(migration_key, "applied realm +1 migration")
         LOGGER.info("【游戏迁移 v7】肉体凡胎已添加，所有境界/玩家/BOSS/丹药境界引用均已 +1")
     except Exception as _e:
         LOGGER.warning(f"【游戏迁移 v7】{_e}")
 
-
-_migrate_game_v7()
+# 历史数据迁移会改写玩家境界数据，禁止在启动/重部署时自动执行。
+# 如需处理旧库，请在确认备份后手动调用。
 
 
 def _migrate_game_v8():
@@ -519,15 +556,26 @@ def _migrate_game_v10():
         (19, 21, 41, 50),   # 炼真灵气
         (22, 24, 71, 80),   # 大乘灵石（旧：炼虚+合体+大乘 → 仅大乘期）
     ]
+    migration_key = "game_v10_realm_expand"
+    if _is_game_migration_applied(migration_key):
+        return
     try:
         with engine.connect() as conn:
             # 检测是否已完成 v10 迁移（检查是否存在 realm_idx=10 且名称含"练气"）
+            total_rows = conn.execute(sa_text(
+                "SELECT COUNT(*) FROM game_realm_config"
+            )).scalar() or 0
             res = conn.execute(sa_text(
                 "SELECT COUNT(*) FROM game_realm_config "
                 "WHERE realm_idx=10 AND name LIKE '%练气%'"
             ))
             if res.scalar() > 0:
+                _mark_game_migration_applied(migration_key, "detected expanded realm config")
                 return  # 已迁移，跳过
+            if total_rows == 0:
+                LOGGER.warning("【游戏迁移 v10】game_realm_config 为空，跳过旧境界 remap 以避免重复改写玩家境界")
+                _mark_game_migration_applied(migration_key, "skipped on empty realm config")
+                return
         LOGGER.info("【游戏迁移 v10】开始扩展境界体系为每大境界10层...")
         with engine.connect() as conn:
             # 1. 重映射玩家 realm（旧→新）
@@ -561,12 +609,13 @@ def _migrate_game_v10():
             reload_realm_cache()
         except Exception:
             pass
+        _mark_game_migration_applied(migration_key, "applied realm expansion migration")
         LOGGER.info("【游戏迁移 v10】完成：玩家/BOSS/丹药境界已重映射，旧境界配置已清空，等待重新种子")
     except Exception as _e:
         LOGGER.warning(f"【游戏迁移 v10】{_e}")
 
-
-_migrate_game_v10()
+# 历史数据迁移会改写玩家境界数据，禁止在启动/重部署时自动执行。
+# 如需处理旧库，请在确认备份后手动调用。
 
 
 def _migrate_game_v11():

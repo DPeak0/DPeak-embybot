@@ -186,6 +186,7 @@ async def handle_media_webhook(request: Request):
                     item_name=item_data.get("Name", ""),
                     orig_name=item_data.get("OriginalTitle", ""),
                     tmdb_id=tmdb_id,
+                    emby_item=item_data,
                 )
                 return {
                     "status": "success",

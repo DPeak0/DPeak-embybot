@@ -28,7 +28,7 @@ async def _verify_emby_admin(username: str, password: str) -> dict:
     url = f"{emby_url.rstrip('/')}/emby/Users/AuthenticateByName"
     headers = {
         "X-Emby-Authorization": (
-            'MediaBrowser Client="Sakura Admin", Device="Web", '
+            'MediaBrowser Client="DPeakEmby Admin", Device="Web", '
             'DeviceId="sakura-admin", Version="1.0.0"'
         ),
         "Content-Type": "application/json",

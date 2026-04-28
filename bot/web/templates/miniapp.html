@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>用户中心</title>
+<title>求片中心</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -206,34 +206,6 @@
   .acct-card-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
   .acct-card-value { font-size: 18px; font-weight: 900; line-height: 1.2; }
   .acct-card-unit { font-size: 12px; font-weight: 500; color: var(--accent2); margin-left: 4px; vertical-align: baseline; }
-  /* 执念最爱 */
-  .top-item-card {
-    background: var(--card); border: 1px solid var(--card-border);
-    border-radius: 16px; padding: 14px; margin-bottom: 12px;
-    display: flex; gap: 14px; align-items: center;
-  }
-  .top-item-poster {
-    width: 72px; height: 108px; border-radius: 10px; object-fit: cover; flex-shrink: 0;
-    background: var(--card-border);
-  }
-  .top-item-poster-ph {
-    width: 72px; height: 108px; border-radius: 10px; flex-shrink: 0;
-    background: var(--card-border); display: flex; align-items: center;
-    justify-content: center; color: var(--text2); font-size: 22px;
-  }
-  .top-item-meta { flex: 1; min-width: 0; }
-  .top-item-label {
-    font-size: 11px; font-weight: 700; color: var(--danger);
-    display: flex; align-items: center; gap: 4px; margin-bottom: 6px; text-transform: uppercase;
-  }
-  .top-item-name { font-size: 16px; font-weight: 900; margin-bottom: 10px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .top-item-chips { display: flex; gap: 8px; flex-wrap: wrap; }
-  .top-item-chip {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 11px; border-radius: 99px; font-size: 12px; font-weight: 600;
-    background: var(--card-border);
-  }
   /* 观影成就 */
   .achieve-section-title {
     font-size: 14px; font-weight: 700; color: var(--text2);
@@ -317,15 +289,22 @@
   <div class="topbar-avatar" id="topAvatar">?</div>
   <div class="topbar-info">
     <div class="topbar-name" id="topName">加载中...</div>
-    <div class="topbar-sub" id="topSub">Sakura Emby</div>
+    <div class="topbar-sub" id="topSub">DPeakEmby</div>
   </div>
 </div>
 
 <!-- Toast 容器 -->
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- ===== 画像页 ===== -->
+<div class="page active" id="page-profile">
+  <div id="profileContent">
+    <div class="loading-center"><span class="spinner"></span></div>
+  </div>
+</div>
+
 <!-- ===== 求片页 ===== -->
-<div class="page active" id="page-request">
+<div class="page" id="page-request">
   <div class="section-title"><i class="fa-solid fa-film"></i>求片</div>
 
   <div class="tab-switcher">
@@ -356,22 +335,15 @@
   </div>
 </div>
 
-<!-- ===== 画像页 ===== -->
-<div class="page" id="page-profile">
-  <div id="profileContent">
-    <div class="loading-center"><span class="spinner"></span></div>
-  </div>
-</div>
-
 <!-- 底部导航 -->
 <nav class="bottom-nav">
-  <div class="nav-item active" id="nav-request" onclick="switchPage('request')">
-    <i class="fa-solid fa-film"></i>
-    <span>求片</span>
-  </div>
-  <div class="nav-item" id="nav-profile" onclick="switchPage('profile')">
+  <div class="nav-item active" id="nav-profile" onclick="switchPage('profile')">
     <i class="fa-solid fa-user-circle"></i>
     <span>我的</span>
+  </div>
+  <div class="nav-item" id="nav-request" onclick="switchPage('request')">
+    <i class="fa-solid fa-film"></i>
+    <span>求片</span>
   </div>
 </nav>
 
@@ -391,10 +363,7 @@
         <div id="cmOverview" style="font-size:12px; color:var(--text2); line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;"></div>
       </div>
     </div>
-    <div style="margin:0 20px 14px; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.3); border-radius:10px; padding:10px 12px; display:flex; gap:8px; align-items:flex-start;">
-      <i class="fa-solid fa-circle-info" style="color:#818cf8; margin-top:2px; flex-shrink:0;"></i>
-      <span style="font-size:12px; color:var(--text2); line-height:1.5;">提交请求后，管理员将审核您的请求。通过审核后，内容将会被添加到服务器中。请注意您的点播配额限制。</span>
-    </div>
+    <div id="cmQuotaHint" style="margin:0 20px 14px; background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.28); border-radius:10px; padding:10px 12px; font-size:12px; color:var(--text2); line-height:1.5;"></div>
     <div style="padding:0 20px 14px;">
       <label style="font-size:13px; font-weight:600; color:var(--text2); display:block; margin-bottom:6px;">备注（可选）</label>
       <textarea id="cmNote" maxlength="500" rows="3"
@@ -433,11 +402,54 @@ const INIT_DATA = twa.initData || '';
 let userProfile = null;
 let trendingLoaded = false;
 let myRequestsLoaded = false;
+let profileStats = null;
+let profileStatsLoading = false;
+let profileSummaryLoading = false;
+let myStatusRefreshInFlight = false;
+const searchCache = new Map();
 // tmdb_id → status 字典，用于跨页面持久化按钮状态
 let requestStatusMap = {};
 
 function apiHeaders() {
   return { 'Content-Type': 'application/json', 'X-Init-Data': INIT_DATA };
+}
+
+function applyUserProfile(data) {
+  userProfile = data || null;
+  const name = data?.tg_name || data?.emby_name || '用户';
+  document.getElementById('topAvatar').textContent = (name[0] || '?').toUpperCase();
+  document.getElementById('topName').textContent = name;
+  document.getElementById('topSub').textContent = data?.has_account
+    ? `Emby: ${data.emby_name} · ${data.level_name}` : '尚未注册账号';
+}
+
+function _applyRequestBtnState(btn, status) {
+  if (!btn) return;
+  if (status === 'completed') {
+    btn.textContent = '✓ 已入库';
+    btn.style.background = 'linear-gradient(135deg,#34d399,#10b981)';
+    btn.style.cursor = 'default';
+    btn.style.opacity = '1';
+    btn.disabled = true;
+    btn.onclick = null;
+    return;
+  }
+  if (status === 'pending' || status === 'processing') {
+    btn.textContent = '✓ 已申请';
+    btn.style.opacity = '0.55';
+    btn.style.cursor = 'default';
+    btn.disabled = true;
+    btn.onclick = null;
+  }
+}
+
+function refreshRenderedRequestButtons() {
+  document.querySelectorAll('[data-tmdb-id]').forEach(btn => {
+    const status = requestStatusMap[btn.dataset.tmdbId];
+    if (status === 'completed' || status === 'pending' || status === 'processing') {
+      _applyRequestBtnState(btn, status);
+    }
+  });
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
@@ -503,12 +515,7 @@ async function checkLibraryStatus(items, containerId) {
       requestStatusMap[tmdbId] = 'completed';
       if (!container) continue;
       container.querySelectorAll(`[data-tmdb-id="${tmdbId}"]`).forEach(btn => {
-        btn.textContent = '✓ 已入库';
-        btn.style.background = 'linear-gradient(135deg,#34d399,#10b981)';
-        btn.style.cursor = 'default';
-        btn.style.opacity = '1';
-        btn.disabled = true;
-        btn.onclick = null;
+        _applyRequestBtnState(btn, 'completed');
       });
     }
   } catch (e) {
@@ -518,12 +525,17 @@ async function checkLibraryStatus(items, containerId) {
 
 // ── 加载申请状态字典 ────────────────────────────────────────────────────────────
 async function loadMyStatus() {
+  if (myStatusRefreshInFlight) return;
+  myStatusRefreshInFlight = true;
   try {
     const resp = await fetch('/miniapp/my_status', { headers: apiHeaders() });
     const data = await resp.json();
     requestStatusMap = data.status_map || {};
+    refreshRenderedRequestButtons();
   } catch (e) {
     // 非致命错误，静默处理
+  } finally {
+    myStatusRefreshInFlight = false;
   }
 }
 
@@ -533,21 +545,41 @@ async function initUser() {
     const resp = await fetch('/miniapp/auth', { method: 'POST', headers: apiHeaders() });
     const data = await resp.json();
     if (!data.ok) { showToast(data.msg || '认证失败', 'err'); return; }
-    userProfile = data;
-
-    // 顶部栏
-    const name = data.tg_name || data.emby_name || '用户';
-    document.getElementById('topAvatar').textContent = (name[0] || '?').toUpperCase();
-    document.getElementById('topName').textContent = name;
-    document.getElementById('topSub').textContent = data.has_account
-      ? `Emby: ${data.emby_name} · ${data.level_name}` : '尚未注册账号';
+    applyUserProfile(data);
   } catch (e) {
     showToast('网络错误，请稍后重试', 'err');
   }
 }
 
+async function initBootstrap() {
+  try {
+    const resp = await fetch('/miniapp/bootstrap', { method: 'POST', headers: apiHeaders() });
+    const data = await resp.json();
+    if (!data.ok) {
+      return false;
+    }
+    applyUserProfile(data);
+    requestStatusMap = data.status_map || {};
+    if (data.trending?.length) {
+      renderMediaList(data.trending, 'trendingList');
+      trendingLoaded = true;
+    } else if (data.trending_error) {
+      trendingLoaded = true;
+      document.getElementById('trendingList').innerHTML = '<div class="empty"><i class="fa-solid fa-wifi-slash"></i>影视数据暂不可用</div>';
+    } else {
+      trendingLoaded = true;
+      document.getElementById('trendingList').innerHTML = '<div class="empty"><i class="fa-solid fa-face-meh"></i>暂无结果</div>';
+    }
+    loadMyStatus();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 // ── 热门内容 ───────────────────────────────────────────────────────────────────
 async function loadTrending() {
+  if (trendingLoaded) return;
   trendingLoaded = true;
   try {
     const resp = await fetch('/miniapp/trending', { headers: apiHeaders() });
@@ -563,6 +595,23 @@ async function loadTrending() {
 }
 
 // ── 搜索 ───────────────────────────────────────────────────────────────────────
+function normalizeSearchCacheKey(q) {
+  const normalized = (q || '')
+    .normalize('NFKC')
+    .replace(/\u3000/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  if (!normalized) return '';
+  const yearMatch = normalized.match(/(?:^|[\s\[(（【-])((?:19|20)\d{2})[\])）】\s-]*$/);
+  const year = yearMatch ? yearMatch[1] : '';
+  const title = (yearMatch ? normalized.slice(0, yearMatch.index + 1) : normalized)
+    .replace(/[\s\[(（【-]+$/g, '')
+    .trim();
+  const compactTitle = (title || normalized).replace(/[\s\-_:：·•'"`.,，!！?？/\\|+~()\[\]{}<>《》【】]+/g, '');
+  return `${compactTitle || normalized.replace(/\s+/g, '')}:y${year || '0'}`;
+}
+
 let searchTimer = null;
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('searchInput').addEventListener('input', e => {
@@ -573,13 +622,29 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('trendingSection').style.display = '';
       return;
     }
+    if (q.length < 2) {
+      document.getElementById('trendingSection').style.display = 'none';
+      document.getElementById('searchResults').innerHTML = '<div class="empty"><i class="fa-solid fa-keyboard"></i>请输入至少 2 个字符后再搜索</div>';
+      return;
+    }
     document.getElementById('trendingSection').style.display = 'none';
     document.getElementById('searchResults').innerHTML = '<div class="loading-center"><span class="spinner"></span></div>';
-    searchTimer = setTimeout(() => doSearch(q), 500);
+    searchTimer = setTimeout(() => doSearch(q), 700);
   });
 });
 
 async function doSearch(q) {
+  const normalizedQ = (q || '').normalize('NFKC').replace(/\u3000/g, ' ').replace(/\s+/g, ' ').trim();
+  const cacheKey = normalizeSearchCacheKey(normalizedQ);
+  const visibleTitle = normalizedQ.replace(/(?:^|[\s\[(（【-])((?:19|20)\d{2})[\])）】\s-]*$/u, '').trim() || normalizedQ;
+  if (visibleTitle.length < 2) {
+    document.getElementById('searchResults').innerHTML = '<div class="empty"><i class="fa-solid fa-keyboard"></i>请输入至少 2 个字符后再搜索</div>';
+    return;
+  }
+  if (searchCache.has(cacheKey)) {
+    renderMediaList(searchCache.get(cacheKey) || [], 'searchResults');
+    return;
+  }
   try {
     const resp = await fetch(`/miniapp/search?q=${encodeURIComponent(q)}`, { headers: apiHeaders() });
     const data = await resp.json();
@@ -587,6 +652,7 @@ async function doSearch(q) {
       document.getElementById('searchResults').innerHTML = '<div class="empty"><i class="fa-solid fa-wifi-slash"></i>影视搜索暂不可用</div>';
       return;
     }
+    searchCache.set(cacheKey, data.results || []);
     renderMediaList(data.results || [], 'searchResults');
   } catch {
     document.getElementById('searchResults').innerHTML = '<div class="empty"><i class="fa-solid fa-wifi-slash"></i>搜索失败</div>';
@@ -602,7 +668,7 @@ function renderMediaList(items, containerId) {
   container.innerHTML = items.map(item => `
     <div class="media-card">
       ${item.poster
-        ? `<img class="media-poster" src="${item.poster}" loading="lazy" alt="${item.title}">`
+        ? `<img class="media-poster" src="${item.poster}" loading="lazy" decoding="async" fetchpriority="low" alt="${item.title}">`
         : `<div class="media-poster-placeholder"><i class="fa-solid fa-film"></i></div>`}
       <div class="media-info">
         <div class="media-title">${item.title}</div>
@@ -628,7 +694,7 @@ function openConfirmModal(item) {
   // 封面
   const posterEl = document.getElementById('cmPoster');
   posterEl.innerHTML = item.poster
-    ? `<img src="${item.poster}" style="width:72px;height:100px;object-fit:cover;border-radius:8px;" />`
+    ? `<img src="${item.poster}" decoding="async" style="width:72px;height:100px;object-fit:cover;border-radius:8px;" />`
     : `<div style="width:72px;height:100px;background:var(--card);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);"><i class='fa-solid fa-film'></i></div>`;
   document.getElementById('cmTitle').textContent = item.title || '';
   document.getElementById('cmOrigTitle').textContent = (item.orig_title && item.orig_title !== item.title) ? item.orig_title : '';
@@ -638,6 +704,10 @@ function openConfirmModal(item) {
     item.vote ? `<span class="badge badge-vote">⭐ ${item.vote}</span>` : '',
   ].join('');
   document.getElementById('cmOverview').textContent = item.overview || '';
+  const quotaHint = document.getElementById('cmQuotaHint');
+  const requestCost = Number(userProfile?.request_credit_cost ?? 0);
+  const remainingQuota = Number(userProfile?.request_quota_remaining ?? 0);
+  quotaHint.innerHTML = `提交后将消耗 <strong style="color:var(--warning);">${requestCost}</strong> ${userProfile?.credits_unit || ''}，当前剩余 <strong style="color:var(--text);">${userProfile?.credits ?? 0}</strong> ${userProfile?.credits_unit || ''}；并占用 <strong style="color:var(--warning);">1</strong> 次求片额度，本周期剩余 <strong style="color:var(--text);">${remainingQuota}</strong> 次。`;
   document.getElementById('cmNote').value = '';
   document.getElementById('cmCount').textContent = '0';
   const btn = document.getElementById('cmSubmit');
@@ -653,6 +723,9 @@ function closeConfirmModal() {
 
 async function submitConfirmed() {
   if (!confirmItem) return;
+  const requestCost = Number(userProfile?.request_credit_cost ?? 0);
+  const confirmText = `确认提交吗？本次将消耗 ${requestCost} ${userProfile?.credits_unit || ''}，并占用 1 次求片额度。`;
+  if (!confirm(confirmText)) return;
   const btn = document.getElementById('cmSubmit');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
@@ -670,6 +743,16 @@ async function submitConfirmed() {
 
     if (data.ok) {
       requestStatusMap[item.tmdb_id] = 'pending';
+      if (userProfile) {
+        if (typeof data.request_quota_remaining === 'number') userProfile.request_quota_remaining = data.request_quota_remaining;
+        if (typeof data.request_quota_used === 'number') userProfile.request_quota_used = data.request_quota_used;
+        if (typeof data.request_quota === 'number') userProfile.request_quota = data.request_quota;
+        if (typeof data.request_quota_reset_days === 'number') userProfile.request_quota_reset_days = data.request_quota_reset_days;
+        if (typeof data.credits === 'number') userProfile.credits = data.credits;
+        if (document.getElementById('page-profile').classList.contains('active')) {
+          renderProfile(userProfile, profileStats, { loadingStats: profileStatsLoading });
+        }
+      }
       showToast(data.msg || '申请已提交', 'ok');
       _updateRequestBtns(item.tmdb_id, 'pending');
       myRequestsLoaded = false;
@@ -692,16 +775,7 @@ async function submitConfirmed() {
 
 function _updateRequestBtns(tmdb_id, status) {
   document.querySelectorAll(`[data-tmdb-id="${tmdb_id}"]`).forEach(btn => {
-    if (status === 'completed') {
-      btn.textContent = '✓ 已入库';
-      btn.style.background = 'linear-gradient(135deg,#34d399,#10b981)';
-      btn.style.cursor = 'default'; btn.style.opacity = '1';
-      btn.disabled = true; btn.onclick = null;
-    } else if (status === 'pending' || status === 'processing') {
-      btn.textContent = '✓ 已申请';
-      btn.style.opacity = '0.55'; btn.style.cursor = 'default';
-      btn.disabled = true; btn.onclick = null;
-    }
+    _applyRequestBtnState(btn, status);
   });
 }
 
@@ -780,136 +854,151 @@ async function loadMyRequests() {
 }
 
 // ── 用户画像 ───────────────────────────────────────────────────────────────────
-async function loadProfile() {
+function renderProfile(data, stats = profileStats, options = {}) {
   const container = document.getElementById('profileContent');
-  container.innerHTML = '<div class="loading-center"><span class="spinner"></span></div>';
+  if (!data || !data.ok) {
+    container.innerHTML = '<div class="empty"><i class="fa-solid fa-user-slash"></i>未找到账户信息</div>';
+    return;
+  }
+
+  const loadingStats = Boolean(options.loadingStats);
+  const name = data.tg_name || data.emby_name || '用户';
+  const initial = (name[0] || '?').toUpperCase();
+
+  const daysLeft = data.days_left;
+  const daysDisplay = daysLeft === null ? '无限期' : daysLeft < 0 ? '已过期' : `${daysLeft}`;
+  const daysColor = daysLeft === null ? 'var(--success)' : daysLeft < 7 ? 'var(--danger)' : daysLeft < 30 ? 'var(--warning)' : 'var(--success)';
+  const lvColor = { a: 'var(--warning)', b: 'var(--accent2)', c: 'var(--danger)', d: 'var(--text2)' };
+
+  const profileBadge = `<div class="profile-join-badge" style="background:rgba(124,106,255,.12);color:var(--accent2);border-color:rgba(124,106,255,.3);">`
+    + `<i class="fa-solid fa-user"></i>Emby: ${data.emby_name || '未绑定'}</div>`;
+
+  const playCount = stats ? (stats.play_count || 0) : (loadingStats ? '...' : '-');
+  const totalHours = stats ? (stats.total_hours || 0) : (loadingStats ? '...' : '-');
+  const avgMin = stats ? (stats.avg_minutes || 0) : (loadingStats ? '...' : '-');
+  const statsHint = loadingStats
+    ? `<div style="margin-top:10px;font-size:11px;color:var(--text2);">播放统计加载中...</div>`
+    : '';
+
+  const heroHtml = `
+    <div class="profile-hero-card">
+      <div class="profile-avatar">${initial}</div>
+      <div class="profile-name">${name}</div>
+      ${profileBadge}
+      <div class="play-stats-row">
+        <div class="play-stat">
+          <div class="play-stat-val">${playCount}</div>
+          <div class="play-stat-lbl">播放频次</div>
+        </div>
+        <div class="play-stat-divider"></div>
+        <div class="play-stat">
+          <div class="play-stat-val">${totalHours}</div>
+          <div class="play-stat-lbl">沉浸（小时）</div>
+        </div>
+        <div class="play-stat-divider"></div>
+        <div class="play-stat">
+          <div class="play-stat-val">${avgMin}</div>
+          <div class="play-stat-lbl">均次（分钟）</div>
+        </div>
+      </div>
+      ${statsHint}
+    </div>`;
+
+  const acctHtml = data.has_account ? `
+    <div class="acct-grid">
+      <div class="acct-card">
+        <div class="acct-card-icon"><i class="fa-regular fa-circle-dot"></i></div>
+        <div class="acct-card-label">账号等级</div>
+        <div class="acct-card-value" style="color:${lvColor[data.level] || 'var(--text2)'}">
+          ${data.level === 'a' ? '👑' : data.level === 'b' ? '🎬' : data.level === 'c' ? '🔒' : '🌱'}
+          ${data.level_name}
+        </div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-card-icon"><i class="fa-regular fa-calendar"></i></div>
+        <div class="acct-card-label">订阅到期日</div>
+        <div class="acct-card-value" style="font-size:15px;">${data.expire || '无期限'}</div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-card-icon"><i class="fa-solid fa-coins"></i></div>
+        <div class="acct-card-label">账户积分</div>
+        <div class="acct-card-value">${data.credits || 0}<span class="acct-card-unit">${data.credits_unit || ''}</span></div>
+      </div>
+      <div class="acct-card">
+        <div class="acct-card-icon"><i class="fa-regular fa-calendar-check"></i></div>
+        <div class="acct-card-label">剩余时间</div>
+        <div class="acct-card-value" style="color:${daysColor}">${daysDisplay}<span class="acct-card-unit">${daysLeft === null ? '' : '天'}</span></div>
+      </div>
+    </div>` : '';
+
+  container.innerHTML = heroHtml + acctHtml;
+}
+
+async function refreshProfileSummary() {
+  if (profileSummaryLoading) return;
+  profileSummaryLoading = true;
   try {
-    // 画像页每次打开都拉取最新数据，保证 credits_unit 等字段为最新
     const resp = await fetch('/miniapp/profile', { headers: apiHeaders() });
     const data = await resp.json();
     if (!data || !data.ok) {
-      container.innerHTML = '<div class="empty"><i class="fa-solid fa-user-slash"></i>未找到账户信息</div>';
+      renderProfile(data);
       return;
     }
-
-    // 并行拉取播放统计
-    let stats = null;
-    if (data.has_account) {
-      try {
-        const sr = await fetch('/miniapp/my_stats', { headers: apiHeaders() });
-        const sd = await sr.json();
-        stats = sd.stats || null;
-      } catch {}
+    applyUserProfile(data);
+    renderProfile(data, profileStats, { loadingStats: data.has_account && (!profileStats || profileStatsLoading) });
+    if (data.has_account && !profileStats && !profileStatsLoading) {
+      refreshProfileStats();
     }
-
-    const name = data.tg_name || data.emby_name || '用户';
-    const initial = (name[0] || '?').toUpperCase();
-
-    // 入驻天数：从 first_play 计算，或显示积分
-    let joinDays = null;
-    if (stats && stats.first_play) {
-      const d = new Date(stats.first_play.replace(' ', 'T'));
-      joinDays = Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
-    }
-
-    // 到期颜色
-    const daysLeft = data.days_left;
-    const daysDisplay = daysLeft === null ? '无限期' : daysLeft < 0 ? '已过期' : `${daysLeft}`;
-    const daysColor = daysLeft === null ? 'var(--success)' : daysLeft < 7 ? 'var(--danger)' : daysLeft < 30 ? 'var(--warning)' : 'var(--success)';
-    const lvColor = { a: 'var(--warning)', b: 'var(--accent2)', c: 'var(--danger)', d: 'var(--text2)' };
-
-    // ── Hero Card ──
-    const joinBadge = joinDays !== null
-      ? `<div class="profile-join-badge"><i class="fa-solid fa-star"></i>入驻 Emby 第 ${joinDays} 天</div>`
-      : `<div class="profile-join-badge" style="background:rgba(124,106,255,.12);color:var(--accent2);border-color:rgba(124,106,255,.3);">`
-        + `<i class="fa-solid fa-user"></i>Emby: ${data.emby_name || '未绑定'}</div>`;
-
-    const playCount = stats ? (stats.play_count || 0) : '-';
-    const totalHours = stats ? (stats.total_hours || 0) : '-';
-    const avgMin = stats ? (stats.avg_minutes || 0) : '-';
-
-    const heroHtml = `
-      <div class="profile-hero-card">
-        <div class="profile-avatar">${initial}</div>
-        <div class="profile-name">${name}</div>
-        ${joinBadge}
-        <div class="play-stats-row">
-          <div class="play-stat">
-            <div class="play-stat-val">${playCount}</div>
-            <div class="play-stat-lbl">播放频次</div>
-          </div>
-          <div class="play-stat-divider"></div>
-          <div class="play-stat">
-            <div class="play-stat-val">${totalHours}</div>
-            <div class="play-stat-lbl">沉浸（小时）</div>
-          </div>
-          <div class="play-stat-divider"></div>
-          <div class="play-stat">
-            <div class="play-stat-val">${avgMin}</div>
-            <div class="play-stat-lbl">均次（分钟）</div>
-          </div>
-        </div>
-      </div>`;
-
-    // ── 账号信息 2×2 ──
-    const acctHtml = data.has_account ? `
-      <div class="acct-grid">
-        <div class="acct-card">
-          <div class="acct-card-icon"><i class="fa-regular fa-circle-dot"></i></div>
-          <div class="acct-card-label">账号等级</div>
-          <div class="acct-card-value" style="color:${lvColor[data.level] || 'var(--text2)'}">
-            ${data.level === 'a' ? '👑' : data.level === 'b' ? '🎬' : data.level === 'c' ? '🔒' : '🌱'}
-            ${data.level_name}
-          </div>
-        </div>
-        <div class="acct-card">
-          <div class="acct-card-icon"><i class="fa-regular fa-calendar"></i></div>
-          <div class="acct-card-label">订阅到期日</div>
-          <div class="acct-card-value" style="font-size:15px;">${data.expire || '无期限'}</div>
-        </div>
-        <div class="acct-card">
-          <div class="acct-card-icon"><i class="fa-solid fa-coins"></i></div>
-          <div class="acct-card-label">账户积分</div>
-          <div class="acct-card-value">${data.credits || 0}<span class="acct-card-unit">${data.credits_unit || ''}</span></div>
-        </div>
-        <div class="acct-card">
-          <div class="acct-card-icon"><i class="fa-regular fa-calendar-check"></i></div>
-          <div class="acct-card-label">剩余时间</div>
-          <div class="acct-card-value" style="color:${daysColor}">${daysDisplay}<span class="acct-card-unit">${daysLeft === null ? '' : '天'}</span></div>
-        </div>
-      </div>` : '';
-
-    // ── 执念最爱 ──
-    let topHtml = '';
-    if (stats && stats.top_item && stats.top_item.name) {
-      const top = stats.top_item;
-      const posterEl = top.poster_url
-        ? `<img class="top-item-poster" src="${top.poster_url}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div class="top-item-poster-ph" style="display:none;"><i class="fa-solid fa-film"></i></div>`
-        : `<div class="top-item-poster-ph"><i class="fa-solid fa-film"></i></div>`;
-      topHtml = `
-        <div class="top-item-card">
-          ${posterEl}
-          <div class="top-item-meta">
-            <div class="top-item-label"><i class="fa-solid fa-heart"></i>执念最爱</div>
-            <div class="top-item-name">${top.name}</div>
-            <div class="top-item-chips">
-              <span class="top-item-chip"><i class="fa-solid fa-rotate"></i>N刷 ${top.play_count} 次</span>
-              <span class="top-item-chip"><i class="fa-regular fa-clock"></i>沉迷 ${top.hours} 小时</span>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    container.innerHTML = heroHtml + acctHtml + topHtml;
   } catch (e) {
-    container.innerHTML = '<div class="empty"><i class="fa-solid fa-wifi-slash"></i>加载失败</div>';
+    if (!userProfile) {
+      document.getElementById('profileContent').innerHTML = '<div class="empty"><i class="fa-solid fa-wifi-slash"></i>加载失败</div>';
+    }
+  } finally {
+    profileSummaryLoading = false;
   }
 }
 
+async function refreshProfileStats() {
+  if (profileStatsLoading || !userProfile?.has_account) return;
+  profileStatsLoading = true;
+  renderProfile(userProfile, profileStats, { loadingStats: true });
+  try {
+    const sr = await fetch('/miniapp/my_stats', { headers: apiHeaders() });
+    const sd = await sr.json();
+    profileStats = sd.stats || null;
+  } catch (e) {
+    profileStats = null;
+  } finally {
+    profileStatsLoading = false;
+    if (userProfile) renderProfile(userProfile, profileStats, { loadingStats: false });
+  }
+}
+
+async function loadProfile() {
+  const container = document.getElementById('profileContent');
+  if (userProfile) {
+    renderProfile(userProfile, profileStats, { loadingStats: userProfile.has_account && (!profileStats || profileStatsLoading) });
+    refreshProfileSummary();
+    if (userProfile.has_account && !profileStats && !profileStatsLoading) {
+      refreshProfileStats();
+    }
+    return;
+  }
+
+  container.innerHTML = '<div class="loading-center"><span class="spinner"></span></div>';
+  await refreshProfileSummary();
+}
+
 // ── 启动 ───────────────────────────────────────────────────────────────────────
-initUser().then(() => {
-  // 先加载状态字典，再渲染热门（保证按钮状态正确）
-  loadMyStatus().then(() => loadTrending());
+initBootstrap().then(ok => {
+  if (ok) {
+    loadProfile();
+    return;
+  }
+  initUser().then(() => {
+    // 先加载状态字典，再渲染热门（保证按钮状态正确）
+    loadMyStatus().then(() => loadProfile());
+  });
 });
 </script>
 </body>

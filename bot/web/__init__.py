@@ -13,7 +13,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from .api import emby_api_route, user_api_route, auth_api_route
-from .miniapp_api import router as miniapp_router
+from .miniapp_api import router as miniapp_router, prewarm_tmdb_hot_cache
 from .admin import admin_router
 from bot import api as config_api, bot_token, LOGGER
 
@@ -42,6 +42,7 @@ class Web:
         self.app.include_router(auth_api_route)
         self.app.include_router(miniapp_router)
         self.app.include_router(admin_router)
+        self.app.add_event_handler("startup", prewarm_tmdb_hot_cache)
         # Session 中间件（管理员后台 cookie 登录）
         _secret = (bot_token[:32] if len(bot_token) >= 32 else bot_token.ljust(32, 'x'))
         self.app.add_middleware(SessionMiddleware, secret_key=_secret)

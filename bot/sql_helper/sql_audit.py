@@ -11,7 +11,7 @@ category 值域:
   request   — 求片审批操作
   bot_cmd   — Bot 管理员指令
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import (
     BigInteger, Column, DateTime, Index, String, Text, text
@@ -183,6 +183,32 @@ def get_audit_operator_names(tg_ids: list) -> dict:
             )
             result[tg_id] = row[0] if row else ""
     return result
+
+
+def get_user_checkin_logs(
+    *,
+    target_tg: int,
+    days: int = 3650,
+    limit: int = 5000,
+) -> list[dict]:
+    """读取用户签到审计记录，按时间倒序返回。"""
+    if not target_tg:
+        return []
+    date_from = datetime.now() - timedelta(days=max(int(days or 1), 1))
+    with Session() as session:
+        rows = (
+            session.query(AuditLog)
+            .filter(
+                AuditLog.category == "credits",
+                AuditLog.action == "checkin",
+                AuditLog.target_tg == target_tg,
+                AuditLog.created_at >= date_from,
+            )
+            .order_by(AuditLog.created_at.desc())
+            .limit(max(int(limit or 1), 1))
+            .all()
+        )
+        return [_row_to_dict(r) for r in rows]
 
 
 def _row_to_dict(r: AuditLog) -> dict:

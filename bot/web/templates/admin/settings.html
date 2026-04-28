@@ -7,6 +7,7 @@
 <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.5rem;">
   <a href="#sec-bot"    class="anchor-tag">Bot基础</a>
   <a href="#sec-emby"   class="anchor-tag">Emby</a>
+  <a href="#sec-api"    class="anchor-tag">API设置</a>
   <a href="#sec-miniapp" class="anchor-tag">MiniApp</a>
   <a href="#sec-reg"    class="anchor-tag">注册</a>
   <a href="#sec-func"   class="anchor-tag">功能开关</a>
@@ -33,7 +34,7 @@
       </div>
       <div>
         <label class="f-label">排行榜前缀（ranks_logo）</label>
-        <input id="ranks_logo" type="text" placeholder="SAKURA" class="f-input" />
+        <input id="ranks_logo" type="text" placeholder="DPeakEmby" class="f-input" />
       </div>
       <div style="grid-column:span 2;">
         <label class="f-label">Bot 头像 URL（bot_photo）</label>
@@ -67,26 +68,72 @@
     </div>
   </div>
 
-  <!-- ③ MiniApp / TMDB -->
+  <!-- ③ API 设置 -->
+  <div id="sec-api" class="card p-6">
+    <h2 class="sec-h2"><i class="fa-solid fa-plug" style="color:#e879a0;"></i> API 设置</h2>
+    <div class="toggle-row" style="margin-bottom:1rem;">
+      <div>
+        <p class="toggle-name">内置 API 服务（api.status）</p>
+        <p class="toggle-desc">控制 Bot 内嵌 FastAPI 服务是否启动</p>
+      </div>
+      <button id="api_status_btn" onclick="toggleBool('api_status','api_status_btn')" class="tbtn">加载中…</button>
+    </div>
+    <div class="grid-2">
+      <div>
+        <label class="f-label">监听地址（api.http_url）</label>
+        <input id="api_http_url" type="text" placeholder="0.0.0.0" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">监听端口（api.http_port）</label>
+        <input id="api_http_port" type="number" min="1" max="65535" placeholder="8838" class="f-input" />
+      </div>
+      <div style="grid-column:span 2;">
+        <label class="f-label">允许来源（api.allow_origins）</label>
+        <input id="api_allow_origins" type="text" placeholder="*, https://admin.example.com" class="f-input" />
+        <p style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;">多个来源用英文逗号分隔，填 `*` 表示全部允许</p>
+      </div>
+      <div>
+        <label class="f-label">TMDB API Key（tmdb_api_key）</label>
+        <input id="tmdb_api_key" type="text" placeholder="TMDB v3 API Key" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">影巢 Base URL（hdhive_base_url）</label>
+        <input id="hdhive_base_url" type="url" placeholder="https://hdhive.com" class="f-input" />
+      </div>
+      <div style="grid-column:span 2;">
+        <label class="f-label">影巢 API Key（hdhive_api_key）</label>
+        <input id="hdhive_api_key" type="text" placeholder="HDHive OpenAPI Key" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">CMS Base URL（cms_base_url）</label>
+        <input id="cms_base_url" type="url" placeholder="https://cms.dpeak.cn" class="f-input" />
+      </div>
+      <div>
+        <label class="f-label">CMS API Token（cms_api_token）</label>
+        <input id="cms_api_token" type="text" placeholder="CMS_API_TOKEN" class="f-input" />
+      </div>
+    </div>
+    <div class="save-row">
+      <button onclick="saveGroup(['api_http_url','api_http_port','api_allow_origins','tmdb_api_key','hdhive_base_url','hdhive_api_key','cms_base_url','cms_api_token'], ['api_http_port'])" class="btn-save">保存</button>
+    </div>
+  </div>
+
+  <!-- ④ MiniApp -->
   <div id="sec-miniapp" class="card p-6">
-    <h2 class="sec-h2"><i class="fa-solid fa-rocket" style="color:#e879a0;"></i> MiniApp / TMDB</h2>
+    <h2 class="sec-h2"><i class="fa-solid fa-rocket" style="color:#e879a0;"></i> MiniApp</h2>
     <div style="display:flex; flex-direction:column; gap:0.75rem;">
       <div>
         <label class="f-label">MiniApp 对外地址（miniapp_url）</label>
         <input id="miniapp_url" type="url" placeholder="https://your.domain.com" class="f-input" />
         <p style="font-size:0.75rem; color:#64748b; margin-top:0.25rem;">Telegram MiniApp 要求 HTTPS，需要反代到 :8838</p>
       </div>
-      <div>
-        <label class="f-label">TMDB API Key（tmdb_api_key）</label>
-        <input id="tmdb_api_key" type="text" placeholder="TMDB v3 API Key" class="f-input" />
-      </div>
     </div>
     <div class="save-row">
-      <button onclick="saveGroup(['miniapp_url','tmdb_api_key'])" class="btn-save">保存</button>
+      <button onclick="saveGroup(['miniapp_url'])" class="btn-save">保存</button>
     </div>
   </div>
 
-  <!-- ④ 注册设置 -->
+  <!-- ⑤ 注册设置 -->
   <div id="sec-reg" class="card p-6">
     <h2 class="sec-h2"><i class="fa-solid fa-door-open" style="color:#e879a0;"></i> 注册设置</h2>
     <div class="toggle-row" style="margin-bottom:1rem;">
@@ -126,7 +173,7 @@
     </div>
   </div>
 
-  <!-- ⑤ 功能开关 -->
+  <!-- ⑥ 功能开关 -->
   <div id="sec-func" class="card p-6">
     <h2 class="sec-h2"><i class="fa-solid fa-toggle-on" style="color:#e879a0;"></i> 功能开关</h2>
     <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem;">
@@ -180,7 +227,7 @@
     </div>
   </div>
 
-  <!-- ⑥ 积分消耗设置 -->
+  <!-- ⑦ 积分消耗设置 -->
   <div id="sec-cost" class="card p-6">
     <h2 class="sec-h2"><i class="fa-solid fa-coins" style="color:#e879a0;"></i> 积分消耗设置</h2>
     <div class="grid-2">
@@ -214,7 +261,7 @@
     </div>
   </div>
 
-  <!-- ⑦ 运营参数 -->
+  <!-- ⑧ 运营参数 -->
   <div id="sec-ops" class="card p-6">
     <h2 class="sec-h2"><i class="fa-solid fa-sliders" style="color:#e879a0;"></i> 运营参数</h2>
     <div class="grid-2" style="margin-bottom:0.75rem;">
@@ -241,7 +288,7 @@
     </div>
   </div>
 
-  <!-- ⑧ 求片额度 -->
+  <!-- ⑨ 求片额度 -->
   <div id="sec-quota" class="card p-6">
     <h2 class="sec-h2"><i class="fa-solid fa-film" style="color:#e879a0;"></i> 求片额度设置</h2>
     <p style="font-size:0.75rem; color:#94a3b8; margin-bottom:1rem;">设为 0 表示该等级禁止求片；额度按周期天数滚动计算</p>
@@ -262,13 +309,17 @@
         <label class="f-label">重置周期天数（request_quota_days）</label>
         <input id="request_quota_days" type="number" min="1" class="f-input" />
       </div>
+      <div>
+        <label class="f-label">每次求片消耗石子（request_credit_cost）</label>
+        <input id="request_credit_cost" type="number" min="0" class="f-input" />
+      </div>
     </div>
     <div class="save-row">
-      <button onclick="saveGroup(['request_quota_a','request_quota_b','request_quota_e','request_quota_days'], true)" class="btn-save">保存</button>
+      <button onclick="saveGroup(['request_quota_a','request_quota_b','request_quota_e','request_quota_days','request_credit_cost'], true)" class="btn-save">保存</button>
     </div>
   </div>
 
-  <!-- ⑨ 计划任务 -->
+  <!-- ⑩ 计划任务 -->
   <div id="sec-sched" class="card p-6">
     <h2 class="sec-h2"><i class="fa-solid fa-clock" style="color:#e879a0;"></i> 计划任务</h2>
     <div style="display:flex; flex-direction:column; gap:0.5rem;">
@@ -307,7 +358,7 @@
     </div>
   </div>
 
-  <!-- ⑩ 客户端过滤 -->
+  <!-- ⑪ 客户端过滤 -->
   <div id="sec-filter" class="card p-6">
     <h2 class="sec-h2"><i class="fa-solid fa-shield-halved" style="color:#e879a0;"></i> 客户端过滤</h2>
     <div style="display:flex; flex-direction:column; gap:0.5rem;">
@@ -370,37 +421,26 @@ function updateBoolBtn(btnId, val) {
   btn.dataset.val = val ? '1' : '0';
 }
 
-async function toggleBool(key, btnId) {
-  const btn = document.getElementById(btnId);
-  const newVal = btn.dataset.val !== '1';
-  const data = await api('/admin/api/settings', { method:'POST', body:JSON.stringify({ [key]: newVal }) });
-  showToast(data.msg || '操作完成', data.ok);
-  if (data.ok) updateBoolBtn(btnId, newVal);
-}
-
-async function saveGroup(fields, asInt = false) {
-  const body = {};
-  for (const f of fields) {
-    const el = document.getElementById(f);
-    if (!el) continue;
-    body[f] = asInt ? parseInt(el.value, 10) : el.value;
-  }
-  const data = await api('/admin/api/settings', { method:'POST', body:JSON.stringify(body) });
-  showToast(data.msg || '操作完成', data.ok);
-}
-
-async function loadSettings() {
-  const data = await api('/admin/api/settings');
-  if (!data.ok) return;
-  const s = data.settings;
+function applySettings(s) {
+  if (!s) return;
   // Bot 基础
   setVal('bot_name', s.bot_name); setVal('money', s.money);
   setVal('ranks_logo', s.ranks_logo); setVal('bot_photo', s.bot_photo);
   // Emby
   setVal('emby_url', s.emby_url); setVal('emby_line', s.emby_line);
   setVal('emby_whitelist_line', s.emby_whitelist_line);
+  // API 设置
+  updateBoolBtn('api_status_btn', s.api_status);
+  setVal('api_http_url', s.api_http_url);
+  setVal('api_http_port', s.api_http_port ?? 8838);
+  setVal('api_allow_origins', s.api_allow_origins);
+  setVal('tmdb_api_key', s.tmdb_api_key);
+  setVal('hdhive_base_url', s.hdhive_base_url);
+  setVal('hdhive_api_key', s.hdhive_api_key);
+  setVal('cms_base_url', s.cms_base_url);
+  setVal('cms_api_token', s.cms_api_token);
   // MiniApp
-  setVal('miniapp_url', s.miniapp_url); setVal('tmdb_api_key', s.tmdb_api_key);
+  setVal('miniapp_url', s.miniapp_url);
   // 注册
   updateBoolBtn('stat_btn', s.stat);
   setVal('all_user', s.all_user ?? 0); setVal('open_us', s.open_us ?? 30);
@@ -424,6 +464,7 @@ async function loadSettings() {
   setVal('request_quota_b', s.request_quota_b ?? 10);
   setVal('request_quota_e', s.request_quota_e ?? 5);
   setVal('request_quota_days', s.request_quota_days ?? 30);
+  setVal('request_credit_cost', s.request_credit_cost ?? 0);
   // 计划任务
   ['schedall_check_ex','schedall_low_activity','schedall_dayrank','schedall_weekrank',
    'schedall_dayplayrank','schedall_weekplayrank','schedall_backup_db','schedall_partition_check'
@@ -431,6 +472,46 @@ async function loadSettings() {
   // 客户端过滤
   updateBoolBtn('client_filter_terminate_session_btn', s.client_filter_terminate_session);
   updateBoolBtn('client_filter_block_user_btn', s.client_filter_block_user);
+}
+
+async function toggleBool(key, btnId) {
+  const btn = document.getElementById(btnId);
+  const newVal = btn.dataset.val !== '1';
+  const data = await api('/admin/api/settings', { method:'POST', body:JSON.stringify({ [key]: newVal }) });
+  showToast(data.msg || '操作完成', data.ok);
+  if (data.settings) applySettings(data.settings);
+  else if (data.ok) updateBoolBtn(btnId, newVal);
+}
+
+async function saveGroup(fields, intFields = false) {
+  const intFieldList = intFields === true ? fields : (Array.isArray(intFields) ? intFields : []);
+  const body = {};
+  for (const f of fields) {
+    const el = document.getElementById(f);
+    if (!el) continue;
+    if (intFieldList.includes(f)) {
+      const raw = (el.value ?? '').toString().trim();
+      if (raw === '') continue;
+      const parsed = parseInt(raw, 10);
+      if (Number.isNaN(parsed)) continue;
+      body[f] = parsed;
+    } else {
+      body[f] = el.value;
+    }
+  }
+  if (!Object.keys(body).length) {
+    showToast('没有可保存的内容', false);
+    return;
+  }
+  const data = await api('/admin/api/settings', { method:'POST', body:JSON.stringify(body) });
+  showToast(data.msg || '操作完成', data.ok);
+  if (data.settings) applySettings(data.settings);
+}
+
+async function loadSettings() {
+  const data = await api('/admin/api/settings');
+  if (!data.ok) return;
+  applySettings(data.settings);
 }
 loadSettings();
 </script>

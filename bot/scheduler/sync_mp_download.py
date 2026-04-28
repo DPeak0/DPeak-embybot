@@ -1,7 +1,8 @@
-from bot import LOGGER, config, bot
+from bot import LOGGER, config
 from bot.func_helper.moviepilot import get_download_task, get_history_transfer_task_by_title_download_id
 from bot.sql_helper.sql_request_record import sql_update_request_status, sql_get_request_record_by_transfer_state, sql_get_request_record_by_download_id
 from bot.func_helper.scheduler import scheduler
+from bot.web.miniapp_notify import send_request_completed_notification
 async def sync_download_tasks():
     """同步MoviePilot下载任务状态到数据库"""
     try:
@@ -63,7 +64,10 @@ async def sync_download_tasks():
                 if transfer_state is not None:
                     if transfer_state:
                         try:
-                            await bot.send_message(chat_id=record.tg, text = f"💯恭喜您点播的「{record.request_name}」已成功入库！")
+                            await send_request_completed_notification(
+                                chat_id=record.tg,
+                                title=record.request_name or "",
+                            )
                         except Exception as e:
                             LOGGER.error(f"[MoviePilot] 发送通知到{record.tg}失败: {str(e)}")
                     sql_update_request_status(

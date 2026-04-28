@@ -75,7 +75,7 @@ async def p_start(_, msg):
         is_admin = judge_admins(msg.from_user.id)
         name, lv, ex, us, embyid, pwd2, _raw_lv = data
         stat, all_user, tem, timing = await open_check()
-        text = f"▎__欢迎进入用户面板！{msg.from_user.first_name}__\n\n" \
+        text = f"▎__欢迎进入账号管理！{msg.from_user.first_name}__\n\n" \
                f"**· 🆔 用户のID** | `{msg.from_user.id}`\n" \
                f"**· 📊 当前状态** | {lv}\n" \
                f"**· 🍒 积分{sakura_b}** | {us}\n" \
@@ -88,7 +88,7 @@ async def p_start(_, msg):
         else:
             await asyncio.gather(deleteMessage(msg),
                                  sendPhoto(msg, bot_photo,
-                                           f"**✨ 只有你想见我的时候我们的相遇才有意义**\n\n🍉__你好鸭 [{msg.from_user.first_name}](tg://user?id={msg.from_user.id}) 请选择功能__👇",
+                                           f"**✨ 只有你想见我的时候我们的相遇才有意义**\n\n🍉__你好鸭 [{msg.from_user.first_name}](tg://user?id={msg.from_user.id}) 请选择账号功能__👇",
                                            buttons=judge_start_ikb(is_admin, True)))
 
 
@@ -99,7 +99,7 @@ async def b_start(_, call):
         is_admin = judge_admins(call.from_user.id)
         await asyncio.gather(callAnswer(call, "⭐ 返回start"),
                              editMessage(call,
-                                         text=f"**✨ 只有你想见我的时候我们的相遇才有意义**\n\n🍉__你好鸭 [{call.from_user.first_name}](tg://user?id={call.from_user.id}) 请选择功能__👇",
+                                         text=f"**✨ 只有你想见我的时候我们的相遇才有意义**\n\n🍉__你好鸭 [{call.from_user.first_name}](tg://user?id={call.from_user.id}) 请选择账号功能__👇",
                                          buttons=judge_start_ikb(is_admin, account=True)))
     elif not await user_in_group_filter(_, call):
         await asyncio.gather(callAnswer(call, "⭐ 返回start"),

@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>每日签到</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -35,7 +32,7 @@
   }
 
   body {
-    font-family: 'Noto Sans SC', -apple-system, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -45,255 +42,719 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 24px 20px calc(24px + var(--safe-bottom));
+    padding: 22px 18px calc(22px + var(--safe-bottom));
   }
 
-  /* ── 主卡片 ── */
   .main-card {
-    width: 100%; max-width: 360px;
+    width: 100%;
+    max-width: 380px;
     background: var(--bg2);
     border: 1px solid var(--card-border);
     border-radius: 28px;
-    padding: 32px 24px 28px;
+    padding: 28px 22px 24px;
     box-shadow: 0 12px 60px rgba(0,0,0,.5);
     position: relative;
     overflow: hidden;
   }
   .main-card::before {
     content: '';
-    position: absolute; top: -60px; right: -60px;
-    width: 220px; height: 220px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(124,106,255,.15), transparent 70%);
+    position: absolute;
+    top: -72px;
+    right: -60px;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,106,255,.18), transparent 70%);
     pointer-events: none;
   }
 
-  /* 头像 */
   .avatar {
-    width: 76px; height: 76px; border-radius: 50%;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 30px; font-weight: 900; color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 900;
+    color: #fff;
     margin: 0 auto 14px;
     box-shadow: 0 4px 20px rgba(124,106,255,.4);
   }
   .user-name {
-    text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 4px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 900;
+    margin-bottom: 4px;
   }
   .user-sub {
-    text-align: center; font-size: 12px; color: var(--text2); margin-bottom: 24px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 18px;
   }
 
-  /* 积分展示 */
-  .credits-row {
-    display: flex; gap: 10px; margin-bottom: 24px;
+  .overview-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid var(--card-border);
+    border-radius: 22px;
+    padding: 16px 14px 14px;
+    margin-bottom: 18px;
+    position: relative;
   }
-  .credits-item {
-    flex: 1; background: var(--card); border: 1px solid var(--card-border);
-    border-radius: 16px; padding: 14px 12px; text-align: center;
-    position: relative; overflow: hidden;
+  .overview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
   }
-  .credits-item::before {
-    content: ''; position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
-    width: 80px; height: 80px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(124,106,255,.12), transparent 70%);
+  .overview-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 800;
   }
-  .credits-val {
-    font-size: 26px; font-weight: 900; color: var(--accent2);
-    display: block; margin-bottom: 4px;
+  .overview-title-mark { color: var(--accent2); }
+  .overview-sub {
+    margin-top: 4px;
+    color: var(--text2);
+    font-size: 11px;
+    font-weight: 500;
   }
-  .credits-lbl { font-size: 11px; color: var(--text2); font-weight: 500; }
-  .reward-item .credits-val { color: var(--warning); }
+  .detail-btn {
+    border: 1px solid var(--card-border);
+    background: rgba(124,106,255,.12);
+    color: var(--accent2);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
 
-  /* 签到状态提示 */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .stat-item {
+    min-height: 82px;
+    padding: 12px 10px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--card-border);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-item::before {
+    content: '';
+    position: absolute;
+    inset: auto -18px -26px auto;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,106,255,.14), transparent 72%);
+    pointer-events: none;
+  }
+  .stat-val {
+    display: block;
+    font-size: 23px;
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1.05;
+    margin-bottom: 6px;
+  }
+  .stat-val.reward-range { color: var(--accent2); }
+  .stat-val.reward-total { color: var(--warning); }
+  .stat-lbl {
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.35;
+    font-weight: 600;
+  }
+
   .status-tip {
-    text-align: center; font-size: 13px; color: var(--text2);
-    margin-bottom: 20px; line-height: 1.5;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 16px;
+    line-height: 1.5;
     min-height: 20px;
   }
   .status-tip.success { color: var(--success); font-weight: 600; }
   .status-tip.already { color: var(--warning); font-weight: 600; }
 
-  /* 签到大按钮 */
   .btn-checkin-main {
-    width: 100%; padding: 16px;
-    border-radius: 16px; border: none;
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    border: none;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: #fff; font-size: 17px; font-weight: 800;
-    cursor: pointer; font-family: inherit;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: inherit;
     box-shadow: 0 4px 24px rgba(124,106,255,.45);
     transition: opacity .2s, transform .15s, box-shadow .2s;
     -webkit-tap-highlight-color: transparent;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     letter-spacing: .3px;
   }
   .btn-checkin-main:active { transform: scale(.97); opacity: .9; }
   .btn-checkin-main:disabled {
     background: linear-gradient(135deg, #34d399, #10b981);
     box-shadow: 0 4px 24px rgba(52,211,153,.35);
-    cursor: default; transform: none; opacity: 1;
+    cursor: default;
+    transform: none;
+    opacity: 1;
   }
   .btn-checkin-main.loading { opacity: .7; cursor: default; }
 
-  /* 成就小条 */
-  .streak-bar {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    font-size: 12px; color: var(--text2); margin-top: 14px;
-  }
-  .streak-bar i { color: var(--warning); }
-
-  /* ── 加载动画 ── */
   .spinner {
-    display: inline-block; width: 18px; height: 18px;
+    display: inline-block;
+    width: 18px;
+    height: 18px;
     border: 2.5px solid rgba(255,255,255,.4);
     border-top-color: #fff;
-    border-radius: 50%; animation: spin .6s linear infinite;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── Toast ── */
   .toast-wrap {
-    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-    z-index: 999; display: flex; flex-direction: column; gap: 8px;
-    pointer-events: none; width: calc(100% - 40px); max-width: 340px;
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    width: calc(100% - 40px);
+    max-width: 340px;
   }
   .toast {
-    background: var(--bg2); border: 1px solid var(--card-border);
-    border-radius: 12px; padding: 11px 16px;
-    font-size: 13px; font-weight: 600;
+    background: var(--bg2);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 11px 16px;
+    font-size: 13px;
+    font-weight: 600;
     box-shadow: 0 4px 20px rgba(0,0,0,.5);
     animation: toastIn .25s ease;
-    display: flex; gap: 8px; align-items: center;
+    display: flex;
+    gap: 8px;
+    align-items: center;
   }
   .toast.ok { border-color: var(--success); color: var(--success); }
   .toast.err { border-color: var(--danger); color: var(--danger); }
   .toast.info { border-color: var(--warning); color: var(--warning); }
-  @keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: none; }
+  }
 
-  /* ── 庆祝粒子 ── */
   .confetti-wrap {
-    position: fixed; inset: 0; pointer-events: none; z-index: 998; overflow: hidden;
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 998;
+    overflow: hidden;
   }
   .confetti-dot {
-    position: absolute; border-radius: 3px;
+    position: absolute;
+    border-radius: 3px;
     animation: confettiFall linear forwards;
   }
   @keyframes confettiFall {
-    0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
     100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
   }
 
-  /* ── 滑动验证弹窗 ── */
+  .records-overlay,
   .captcha-overlay {
-    display: none; position: fixed; inset: 0; z-index: 500;
-    background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
-    align-items: flex-end; justify-content: center;
-    padding: 0 0 calc(var(--safe-bottom) + 16px);
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(6px);
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 0 calc(var(--safe-bottom) + 14px);
   }
+  .records-overlay.show,
   .captcha-overlay.show { display: flex; }
+
+  .records-sheet,
   .captcha-sheet {
-    background: var(--bg2); border: 1px solid var(--card-border);
-    border-radius: 28px 28px 20px 20px; padding: 20px 24px 28px;
-    width: 100%; max-width: 420px;
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg2);
+    border: 1px solid var(--card-border);
+    border-radius: 28px 28px 20px 20px;
     box-shadow: 0 -8px 60px rgba(0,0,0,.6);
     animation: sheetUp .28s cubic-bezier(.4,0,.2,1);
   }
-  @keyframes sheetUp { from { transform: translateY(80px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .records-sheet {
+    max-height: min(76vh, 720px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .captcha-sheet { padding: 20px 24px 28px; }
+  @keyframes sheetUp {
+    from { transform: translateY(80px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
 
-  /* 抓手 */
   .sheet-handle {
-    width: 40px; height: 4px; background: var(--card-border);
-    border-radius: 4px; margin: 0 auto 20px;
+    width: 40px;
+    height: 4px;
+    background: var(--card-border);
+    border-radius: 4px;
+    margin: 0 auto 18px;
   }
-  /* 图标区 */
-  .captcha-head {
-    display: flex; flex-direction: column; align-items: center; margin-bottom: 20px;
-  }
-  .captcha-lock { font-size: 44px; margin-bottom: 10px; line-height: 1; }
-  .captcha-label { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
-  .captcha-hint { font-size: 12px; color: var(--text2); }
 
-  /* 轨道 */
+  .records-head {
+    padding: 18px 18px 12px;
+    border-bottom: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .records-title {
+    font-size: 16px;
+    font-weight: 900;
+  }
+  .records-sub {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .records-toolbar {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--card-border);
+    display: block;
+    background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+  }
+  .records-month-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid var(--card-border);
+    background: rgba(255,255,255,.05);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .records-month-trigger .symbol {
+    color: var(--text2);
+    transition: transform .18s ease, color .18s ease;
+  }
+  .records-month-trigger.open .symbol {
+    transform: rotate(180deg);
+    color: var(--accent2);
+  }
+  .records-month-value {
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .records-month-panel {
+    display: none;
+    margin-top: 10px;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: rgba(255,255,255,.04);
+    padding: 12px;
+  }
+  .records-month-panel.show {
+    display: block;
+  }
+  .records-month-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .records-month-head-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .records-month-year {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .records-month-nav {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    background: rgba(255,255,255,.05);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 14px;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .records-month-current {
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    background: rgba(124,106,255,.12);
+    color: var(--accent2);
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .records-month-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .records-month-option {
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: rgba(255,255,255,.03);
+    color: var(--text);
+    padding: 10px 0;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color .18s ease, background .18s ease, color .18s ease, transform .12s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .records-month-option:active {
+    transform: scale(.97);
+  }
+  .records-month-option.active {
+    border-color: rgba(124,106,255,.45);
+    background: rgba(124,106,255,.22);
+    color: #fff;
+  }
+  .records-close {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .records-body {
+    padding: 14px 16px 18px;
+    overflow-y: auto;
+  }
+  .record-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 12px 14px;
+  }
+  .record-item + .record-item { margin-top: 10px; }
+  .record-date {
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .record-meta {
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .record-reward {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .record-reward-val {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--warning);
+    margin-bottom: 3px;
+  }
+  .record-reward-total {
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .records-empty {
+    text-align: center;
+    color: var(--text2);
+    padding: 30px 14px;
+  }
+  .records-empty-mark {
+    display: block;
+    font-size: 34px;
+    opacity: .45;
+    margin-bottom: 10px;
+  }
+
+  .symbol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-style: normal;
+  }
+  .toast-mark {
+    width: 18px;
+    justify-content: center;
+    font-weight: 900;
+  }
+  .view-mark {
+    font-size: 40px;
+    color: var(--text2);
+    opacity: .5;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .captcha-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .captcha-lock {
+    font-size: 44px;
+    margin-bottom: 10px;
+    line-height: 1;
+  }
+  .captcha-label {
+    font-size: 17px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .captcha-hint {
+    font-size: 12px;
+    color: var(--text2);
+  }
+
   .slide-track {
-    position: relative; height: 56px; border-radius: 14px; margin-bottom: 20px;
-    background: var(--card); border: 1px solid var(--card-border);
-    overflow: hidden; user-select: none; -webkit-user-select: none;
+    position: relative;
+    height: 56px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .slide-fill {
-    position: absolute; left: 0; top: 0; height: 100%; width: 0;
-    background: rgba(124,106,255,.2); border-radius: 14px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background: rgba(124,106,255,.2);
+    border-radius: 14px;
     pointer-events: none;
   }
   .slide-text {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 13px; color: var(--text2); pointer-events: none; font-weight: 500;
-    gap: 6px; transition: opacity .3s;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: var(--text2);
+    pointer-events: none;
+    font-weight: 500;
+    gap: 6px;
+    transition: opacity .3s;
   }
   .slide-thumb {
-    position: absolute; left: 0; top: 0; width: 60px; height: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 60px;
+    height: 100%;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: 14px; display: flex; align-items: center; justify-content: center;
-    cursor: grab; touch-action: none;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    touch-action: none;
     box-shadow: 0 2px 16px rgba(124,106,255,.5);
   }
   .slide-thumb:active { cursor: grabbing; }
-  .slide-thumb i { color: #fff; font-size: 20px; }
+  .slide-thumb .symbol {
+    color: #fff;
+    font-size: 20px;
+  }
 
-  /* 取消 */
   .btn-cancel {
-    width: 100%; padding: 14px; border-radius: 14px;
-    border: 1px solid var(--card-border); background: var(--card);
-    color: var(--text2); font-size: 15px; font-weight: 600;
-    cursor: pointer; font-family: inherit;
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+    color: var(--text2);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (max-width: 400px) {
+    body { padding-inline: 14px; }
+    .main-card {
+      padding: 24px 18px 20px;
+      border-radius: 24px;
+    }
+    .stats-grid { gap: 8px; }
+    .stat-item {
+      min-height: 76px;
+      padding: 11px 8px;
+      border-radius: 16px;
+    }
+    .stat-val { font-size: 20px; }
+    .stat-lbl { font-size: 10px; }
+    .detail-btn {
+      padding: 7px 10px;
+      font-size: 11px;
+    }
+    .records-toolbar {
+      padding: 10px 12px;
+    }
+    .records-month-grid {
+      gap: 6px;
+    }
+    .records-month-option {
+      font-size: 12px;
+      border-radius: 10px;
+      padding: 9px 0;
+    }
   }
 </style>
 </head>
 <body>
 
-<!-- Toast -->
 <div class="toast-wrap" id="toastWrap"></div>
-<!-- 庆祝粒子容器 -->
 <div class="confetti-wrap" id="confettiWrap"></div>
 
-<!-- 主内容 -->
 <div class="main-card" id="mainCard">
-  <!-- 加载中占位 -->
   <div id="loadingView" style="text-align:center; padding:20px 0;">
     <div class="spinner" style="border-color:rgba(124,106,255,.3); border-top-color:var(--accent); margin:0 auto;"></div>
   </div>
 
-  <!-- 用户信息（加载后显示） -->
   <div id="userView" style="display:none;">
     <div class="avatar" id="avatarEl">?</div>
     <div class="user-name" id="nameEl">—</div>
-    <div class="user-sub" id="subEl">Sakura Emby</div>
+    <div class="user-sub" id="subEl">DPeakEmby</div>
 
-    <div class="credits-row">
-      <div class="credits-item">
-        <span class="credits-val" id="creditsVal">—</span>
-        <span class="credits-lbl" id="creditsLbl">当前积分</span>
+    <div class="overview-card">
+      <div class="overview-head">
+        <div>
+          <div class="overview-title">
+            <span class="symbol overview-title-mark">✦</span>
+            <span id="monthLabel">本月签到概览</span>
+          </div>
+          <div class="overview-sub">显示本月签到天数、最长连签和获得石子</div>
+        </div>
+        <button class="detail-btn" type="button" onclick="openRecordsModal()">签到明细</button>
       </div>
-      <div class="credits-item reward-item">
-        <span class="credits-val" id="rewardRange">—</span>
-        <span class="credits-lbl">今日奖励</span>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-val reward-range" id="rewardRange">1~10</span>
+          <div class="stat-lbl" id="rewardRangeLabel">签到奖励范围</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-val" id="monthChecked">0</span>
+          <div class="stat-lbl">当月签到天数</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-val" id="monthMaxStreak">0</span>
+          <div class="stat-lbl">当月最长连续签到</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-val reward-total" id="monthRewardTotal">0</span>
+          <div class="stat-lbl">当月获得石子总计</div>
+        </div>
       </div>
     </div>
 
     <div class="status-tip" id="statusTip">点击下方按钮完成今日签到</div>
 
     <button id="checkinBtn" class="btn-checkin-main" onclick="onCheckinClick()">
-      <i class="fa-solid fa-calendar-check"></i>
+      <span class="symbol">✦</span>
       <span id="btnText">立即签到</span>
     </button>
-
-    <div class="streak-bar" id="streakBar" style="display:none;">
-      <i class="fa-solid fa-fire"></i>
-      <span id="streakText"></span>
-    </div>
   </div>
 </div>
 
-<!-- ── 滑动验证底部弹窗 ─────────────────────────────────────────────────────── -->
+<div class="records-overlay" id="recordsOverlay">
+  <div class="records-sheet">
+    <div class="records-head">
+      <div>
+        <div class="records-title">签到明细</div>
+        <div class="records-sub" id="recordsSub">当月签到记录</div>
+      </div>
+      <button class="records-close" type="button" onclick="closeRecordsModal()">
+        <span class="symbol">×</span>
+      </button>
+    </div>
+    <div class="records-toolbar">
+      <button class="records-month-trigger" id="recordsMonthTrigger" type="button" onclick="toggleRecordsMonthPanel()">
+        <span class="records-month-value" id="recordsMonthValue">当前月份</span>
+        <span class="symbol">⌄</span>
+      </button>
+      <div class="records-month-panel" id="recordsMonthPanel">
+        <div class="records-month-head">
+          <div class="records-month-head-main">
+            <button class="records-month-nav" type="button" onclick="shiftRecordsPickerYear(-1)">
+              <span class="symbol">‹</span>
+            </button>
+            <div class="records-month-year" id="recordsMonthYear">2026年</div>
+            <button class="records-month-nav" type="button" onclick="shiftRecordsPickerYear(1)">
+              <span class="symbol">›</span>
+            </button>
+          </div>
+          <button class="records-month-current" type="button" onclick="goToCurrentRecordsMonth()">本月</button>
+        </div>
+        <div class="records-month-grid" id="recordsMonthGrid"></div>
+      </div>
+    </div>
+    <div class="records-body" id="recordsBody"></div>
+  </div>
+</div>
+
 <div class="captcha-overlay" id="captchaOverlay">
   <div class="captcha-sheet">
     <div class="sheet-handle"></div>
@@ -305,10 +766,10 @@
     <div class="slide-track" id="slideTrack">
       <div class="slide-fill" id="slideFill"></div>
       <div class="slide-text" id="slideText">
-        <i class="fa-solid fa-arrow-right" style="opacity:.5;"></i>向右滑动
+        <span class="symbol" style="opacity:.5;">→</span>向右滑动
       </div>
       <div class="slide-thumb" id="slideThumb">
-        <i class="fa-solid fa-angles-right" id="slideThumbIcon"></i>
+        <span class="symbol" id="slideThumbIcon">»</span>
       </div>
     </div>
     <button class="btn-cancel" onclick="closeCaptcha()">取消</button>
@@ -316,7 +777,6 @@
 </div>
 
 <script>
-// ── Telegram WebApp ────────────────────────────────────────────────────────────
 const twa = window.Telegram.WebApp;
 twa.expand();
 twa.ready();
@@ -327,21 +787,20 @@ function apiHeaders() {
   return { 'Content-Type': 'application/json', 'X-Init-Data': INIT_DATA };
 }
 
-// ── Toast ──────────────────────────────────────────────────────────────────────
 function showToast(msg, type = 'info', ms = 3500) {
   const wrap = document.getElementById('toastWrap');
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  const icon = type === 'ok' ? 'circle-check' : type === 'err' ? 'circle-xmark' : 'circle-info';
-  el.innerHTML = `<i class="fa-solid fa-${icon}"></i><span>${msg}</span>`;
+  const icon = type === 'ok' ? '✓' : type === 'err' ? '✕' : '!';
+  el.innerHTML = `<span class="symbol toast-mark">${icon}</span><span>${msg}</span>`;
   wrap.appendChild(el);
   setTimeout(() => {
-    el.style.opacity = '0'; el.style.transition = 'opacity .3s';
+    el.style.opacity = '0';
+    el.style.transition = 'opacity .3s';
     setTimeout(() => el.remove(), 350);
   }, ms);
 }
 
-// ── 庆祝粒子 ──────────────────────────────────────────────────────────────────
 function launchConfetti() {
   const colors = ['#7c6aff','#a78bfa','#34d399','#fbbf24','#f87171','#60a5fa'];
   const wrap = document.getElementById('confettiWrap');
@@ -365,42 +824,239 @@ function launchConfetti() {
   }
 }
 
-// ── 页面初始化 ─────────────────────────────────────────────────────────────────
 let _checkinStatus = null;
+let _checkinOverview = null;
+let _recordsOverview = null;
+let _recordsMonth = '';
+let _recordsPickerYear = new Date().getFullYear();
+
+function formatMonthValue(month) {
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    const [year, mon] = month.split('-');
+    return `${year}年${Number(mon)}月`;
+  }
+  return '当前月份';
+}
+
+function getCurrentMonthValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function resolveTodayReward(overview) {
+  if (!_checkinStatus?.checked || !overview?.today) return 0;
+  const todayRecord = (overview.records || []).find(item => item.date === overview.today);
+  return Number(todayRecord?.reward || 0);
+}
+
+function renderCheckinOverview(overview) {
+  _checkinOverview = overview || null;
+  if (!overview) return;
+  const stats = overview.stats || {};
+  const rewardMin = _checkinStatus?.reward_min ?? 1;
+  const rewardMax = _checkinStatus?.reward_max ?? 10;
+  const todayReward = resolveTodayReward(overview);
+  document.getElementById('monthLabel').textContent = `${overview.month_label || '本月'}签到概览`;
+  document.getElementById('recordsSub').textContent = `${overview.month_label || '本月'}签到记录`;
+  document.getElementById('rewardRange').textContent = _checkinStatus?.checked ? String(todayReward) : `${rewardMin}~${rewardMax}`;
+  document.getElementById('rewardRangeLabel').textContent = _checkinStatus?.checked ? '今日签到获得' : '签到奖励范围';
+  document.getElementById('monthChecked').textContent = stats.checked_count ?? 0;
+  document.getElementById('monthMaxStreak').textContent = stats.max_streak ?? 0;
+  document.getElementById('monthRewardTotal').textContent = stats.reward_total ?? 0;
+  if (!_recordsMonth && overview.month) {
+    _recordsMonth = overview.month;
+  }
+}
+
+function renderRecords(overview = _recordsOverview || _checkinOverview) {
+  const body = document.getElementById('recordsBody');
+  _recordsOverview = overview || null;
+  const records = overview?.records || [];
+  const unit = _checkinStatus?.unit || 'pts';
+  document.getElementById('recordsSub').textContent = `${overview?.month_label || '当前月份'}签到记录`;
+  if (!records.length) {
+    body.innerHTML = `
+      <div class="records-empty">
+        <span class="records-empty-mark">🗓</span>
+        当前月份暂无签到记录
+      </div>`;
+    return;
+  }
+  body.innerHTML = records.map(item => `
+    <div class="record-item">
+      <div>
+        <div class="record-date">${item.date || '--'} ${item.time || ''}</div>
+        <div class="record-meta">${item.source === 'web' ? 'MiniApp 签到' : 'Bot 签到'}</div>
+      </div>
+      <div class="record-reward">
+        <div class="record-reward-val">+${item.reward || 0} ${unit}</div>
+        <div class="record-reward-total">累计 ${item.total || 0} ${unit}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderRecordsMonthOptions() {
+  const grid = document.getElementById('recordsMonthGrid');
+  if (!grid) return;
+  const activeYear = String(_recordsMonth || '').slice(0, 4);
+  const activeMonth = String(_recordsMonth || '').slice(5, 7);
+  document.getElementById('recordsMonthYear').textContent = `${_recordsPickerYear}年`;
+  grid.innerHTML = Array.from({ length: 12 }, (_, index) => {
+    const monthNum = index + 1;
+    const monthValue = `${_recordsPickerYear}-${String(monthNum).padStart(2, '0')}`;
+    const active = activeYear === String(_recordsPickerYear) && activeMonth === String(monthNum).padStart(2, '0');
+    return `<button class="records-month-option${active ? ' active' : ''}" type="button" onclick="selectRecordsMonth('${monthValue}')">${monthNum}月</button>`;
+  }).join('');
+}
+
+function syncRecordsMonthPicker(month) {
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    _recordsPickerYear = Number(month.slice(0, 4));
+  }
+  const valueEl = document.getElementById('recordsMonthValue');
+  if (valueEl) valueEl.textContent = formatMonthValue(month);
+  renderRecordsMonthOptions();
+}
+
+function toggleRecordsMonthPanel(force) {
+  const panel = document.getElementById('recordsMonthPanel');
+  const trigger = document.getElementById('recordsMonthTrigger');
+  if (!panel || !trigger) return;
+  const shouldOpen = typeof force === 'boolean' ? force : !panel.classList.contains('show');
+  panel.classList.toggle('show', shouldOpen);
+  trigger.classList.toggle('open', shouldOpen);
+  if (shouldOpen) {
+    renderRecordsMonthOptions();
+  }
+}
+
+function shiftRecordsPickerYear(delta) {
+  _recordsPickerYear += Number(delta || 0);
+  renderRecordsMonthOptions();
+}
+
+async function goToCurrentRecordsMonth() {
+  await selectRecordsMonth(getCurrentMonthValue());
+}
+
+async function loadCheckinOverview(month = '') {
+  const query = month ? `?month=${encodeURIComponent(month)}` : '';
+  const resp = await fetch(`/miniapp/checkin_overview${query}`, { headers: apiHeaders() });
+  const data = await resp.json();
+  if (!data?.ok) throw new Error(data?.msg || 'load overview failed');
+  return data.overview;
+}
+
+async function loadLegacyCheckinBootstrap() {
+  const [authResp, statusResp, overviewResp] = await Promise.all([
+    fetch('/miniapp/auth', { method: 'POST', headers: apiHeaders() }),
+    fetch('/miniapp/checkin_status', { headers: apiHeaders() }),
+    fetch('/miniapp/checkin_overview', { headers: apiHeaders() }),
+  ]);
+  const auth = await authResp.json();
+  const status = await statusResp.json();
+  const overviewPayload = await overviewResp.json();
+  return {
+    ok: !!auth?.ok,
+    msg: auth?.msg || overviewPayload?.msg || '',
+    auth,
+    status,
+    overview: overviewPayload?.ok ? overviewPayload.overview : null,
+  };
+}
+
+async function loadRecordsOverview(month = '') {
+  const overview = await loadCheckinOverview(month);
+  _recordsOverview = overview;
+  _recordsMonth = overview?.month || month || _recordsMonth;
+  syncRecordsMonthPicker(_recordsMonth);
+  renderRecords(overview);
+}
+
+async function openRecordsModal() {
+  const baseMonth = _recordsMonth || _checkinOverview?.month || '';
+  syncRecordsMonthPicker(baseMonth);
+  toggleRecordsMonthPanel(false);
+  if (!_recordsOverview || (_recordsOverview?.month !== baseMonth && baseMonth)) {
+    try {
+      await loadRecordsOverview(baseMonth);
+    } catch (e) {
+      showToast('加载签到明细失败', 'err');
+      return;
+    }
+  } else {
+    renderRecords(_recordsOverview);
+  }
+  document.getElementById('recordsOverlay').classList.add('show');
+}
+
+function closeRecordsModal() {
+  toggleRecordsMonthPanel(false);
+  document.getElementById('recordsOverlay').classList.remove('show');
+}
+
+async function applyRecordsMonth(month = '') {
+  const targetMonth = String(month || '').trim();
+  if (!targetMonth) return;
+  try {
+    await loadRecordsOverview(targetMonth);
+    toggleRecordsMonthPanel(false);
+  } catch (e) {
+    showToast('加载该月份签到记录失败', 'err');
+  }
+}
+
+async function selectRecordsMonth(month) {
+  const targetMonth = String(month || '').trim();
+  if (!targetMonth) return;
+  if (targetMonth === _recordsMonth) {
+    toggleRecordsMonthPanel(false);
+    return;
+  }
+  await applyRecordsMonth(targetMonth);
+}
 
 async function init() {
   try {
-    // 并行拉取 auth 和 checkin_status
-    const [authResp, statusResp] = await Promise.all([
-      fetch('/miniapp/auth', { method: 'POST', headers: apiHeaders() }),
-      fetch('/miniapp/checkin_status', { headers: apiHeaders() }),
-    ]);
-    const auth = await authResp.json();
-    _checkinStatus = await statusResp.json();
+    let bootstrap = null;
+    try {
+      const bootstrapResp = await fetch('/miniapp/checkin_bootstrap', {
+        method: 'POST',
+        headers: apiHeaders(),
+      });
+      bootstrap = await bootstrapResp.json();
+      if (!bootstrap?.ok) {
+        throw new Error(bootstrap?.msg || 'bootstrap failed');
+      }
+    } catch (e) {
+      bootstrap = await loadLegacyCheckinBootstrap();
+    }
 
-    if (!auth.ok) {
-      showView('err', auth.msg || '认证失败，请从 Bot 重新打开');
+    if (!bootstrap.ok) {
+      showView('err', bootstrap.msg || '认证失败，请从 Bot 重新打开');
       return;
     }
+    const auth = bootstrap.auth || {};
+    _checkinStatus = bootstrap.status || {};
     if (!_checkinStatus.enabled) {
       showView('disabled');
       return;
     }
 
-    // 填充用户信息
     const name = auth.tg_name || auth.emby_name || '用户';
     document.getElementById('avatarEl').textContent = (name[0] || '?').toUpperCase();
     document.getElementById('nameEl').textContent = name;
     document.getElementById('subEl').textContent = auth.has_account
       ? `Emby: ${auth.emby_name} · ${auth.level_name}` : '尚未绑定 Emby 账号';
 
-    const unit = _checkinStatus.unit || 'pts';
-    document.getElementById('creditsVal').textContent = auth.credits || 0;
-    document.getElementById('creditsLbl').textContent = `当前${unit}`;
-    document.getElementById('rewardRange').textContent =
-      `${_checkinStatus.reward_min}~${_checkinStatus.reward_max}`;
+    if (bootstrap.overview) {
+      renderCheckinOverview(bootstrap.overview);
+      _recordsOverview = bootstrap.overview;
+      _recordsMonth = bootstrap.overview?.month || '';
+      syncRecordsMonthPicker(_recordsMonth);
+    }
 
-    // 签到状态
     if (_checkinStatus.checked) {
       setCheckedState();
     }
@@ -415,11 +1071,11 @@ async function init() {
 function showView(type, msg) {
   document.getElementById('loadingView').style.display = 'none';
   const card = document.getElementById('mainCard');
-  const icons = { err: 'fa-circle-exclamation', disabled: 'fa-clock' };
-  const msgs  = { err: msg || '加载失败', disabled: '签到功能暂未开启' };
+  const icons = { err: '⚠', disabled: '⏳' };
+  const msgs = { err: msg || '加载失败', disabled: '签到功能暂未开启' };
   card.innerHTML = `
     <div style="text-align:center; padding:20px 0;">
-      <i class="fa-solid ${icons[type]}" style="font-size:40px; color:var(--text2); opacity:.5; margin-bottom:14px; display:block;"></i>
+      <span class="symbol view-mark">${icons[type]}</span>
       <div style="font-size:14px; color:var(--text2);">${msgs[type]}</div>
     </div>`;
 }
@@ -427,33 +1083,30 @@ function showView(type, msg) {
 function setCheckedState() {
   const btn = document.getElementById('checkinBtn');
   btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-check"></i><span>今日已签到</span>';
+  btn.innerHTML = '<span class="symbol">✓</span><span>今日已签到</span>';
   document.getElementById('statusTip').textContent = '明天再来领积分吧 ✨';
   document.getElementById('statusTip').className = 'status-tip already';
 }
 
-// ── 点击签到按钮 ───────────────────────────────────────────────────────────────
 function onCheckinClick() {
   const btn = document.getElementById('checkinBtn');
   if (btn.disabled) return;
   openCaptcha();
 }
 
-// ── 滑动验证 ───────────────────────────────────────────────────────────────────
 let _resolved = false;
 let _dragging = false;
 let _dragOffset = 0;
 
 function openCaptcha() {
   _resolved = false;
-  // 重置
   const thumb = document.getElementById('slideThumb');
-  const fill  = document.getElementById('slideFill');
-  const text  = document.getElementById('slideText');
+  const fill = document.getElementById('slideFill');
+  const text = document.getElementById('slideText');
   thumb.style.cssText = '';
   fill.style.width = '0';
   fill.style.background = 'rgba(124,106,255,.2)';
-  document.getElementById('slideThumbIcon').className = 'fa-solid fa-angles-right';
+  document.getElementById('slideThumbIcon').textContent = '»';
   document.getElementById('captchaLock').textContent = '🔒';
   text.style.opacity = '1';
   document.getElementById('captchaOverlay').classList.add('show');
@@ -470,8 +1123,7 @@ function onSlideSuccess() {
 
   const track = document.getElementById('slideTrack');
   const thumb = document.getElementById('slideThumb');
-  const fill  = document.getElementById('slideFill');
-
+  const fill = document.getElementById('slideFill');
   const maxLeft = track.offsetWidth - thumb.offsetWidth;
   thumb.style.transition = 'left .15s ease, background .35s, box-shadow .35s';
   thumb.style.left = maxLeft + 'px';
@@ -482,19 +1134,17 @@ function onSlideSuccess() {
     thumb.style.background = 'linear-gradient(135deg, #34d399, #10b981)';
     thumb.style.boxShadow = '0 2px 16px rgba(52,211,153,.55)';
     fill.style.background = 'rgba(52,211,153,.22)';
-    document.getElementById('slideThumbIcon').className = 'fa-solid fa-check';
+    document.getElementById('slideThumbIcon').textContent = '✓';
     document.getElementById('captchaLock').textContent = '🔓';
     document.getElementById('slideText').style.opacity = '0';
   }, 80);
 
-  // 关闭并执行签到
   setTimeout(() => {
     closeCaptcha();
     doCheckin();
   }, 700);
 }
 
-// 拖动逻辑
 (function () {
   function cx(e) { return e.touches ? e.touches[0].clientX : e.clientX; }
 
@@ -504,47 +1154,57 @@ function onSlideSuccess() {
     _dragOffset = cx(e) - document.getElementById('slideThumb').getBoundingClientRect().left;
     e.preventDefault();
   }
+
   function onMove(e) {
     if (!_dragging || _resolved) return;
     const track = document.getElementById('slideTrack');
     const thumb = document.getElementById('slideThumb');
-    const fill  = document.getElementById('slideFill');
-    const rect  = track.getBoundingClientRect();
-    const tw    = thumb.offsetWidth;
-    const maxL  = rect.width - tw;
+    const fill = document.getElementById('slideFill');
+    const rect = track.getBoundingClientRect();
+    const tw = thumb.offsetWidth;
+    const maxL = rect.width - tw;
     let left = cx(e) - rect.left - _dragOffset;
     left = Math.max(0, Math.min(left, maxL));
     thumb.style.left = left + 'px';
-    fill.style.width  = (left + tw) + 'px';
+    fill.style.width = (left + tw) + 'px';
     if (maxL > 0 && left / maxL >= 0.88) onSlideSuccess();
     e.preventDefault();
   }
+
   function onEnd() {
-    if (!_dragging || _resolved) { _dragging = false; return; }
+    if (!_dragging || _resolved) {
+      _dragging = false;
+      return;
+    }
     _dragging = false;
     const thumb = document.getElementById('slideThumb');
-    const fill  = document.getElementById('slideFill');
+    const fill = document.getElementById('slideFill');
     thumb.style.transition = 'left .32s cubic-bezier(.4,0,.2,1)';
-    fill.style.transition  = 'width .32s cubic-bezier(.4,0,.2,1)';
+    fill.style.transition = 'width .32s cubic-bezier(.4,0,.2,1)';
     thumb.style.left = '0';
     fill.style.width = '0';
-    setTimeout(() => { thumb.style.transition = ''; fill.style.transition = ''; }, 340);
+    setTimeout(() => {
+      thumb.style.transition = '';
+      fill.style.transition = '';
+    }, 340);
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     const thumb = document.getElementById('slideThumb');
-    thumb.addEventListener('mousedown',  onStart);
+    thumb.addEventListener('mousedown', onStart);
     thumb.addEventListener('touchstart', onStart, { passive: false });
-    document.addEventListener('mousemove',  onMove);
-    document.addEventListener('mouseup',    onEnd);
-    document.addEventListener('touchmove',  onMove, { passive: false });
-    document.addEventListener('touchend',   onEnd);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+    document.getElementById('recordsOverlay').addEventListener('click', e => {
+      if (e.target.id === 'recordsOverlay') closeRecordsModal();
+    });
   });
 })();
 
-// ── 执行签到请求 ───────────────────────────────────────────────────────────────
 async function doCheckin() {
-  const btn     = document.getElementById('checkinBtn');
+  const btn = document.getElementById('checkinBtn');
   const btnText = document.getElementById('btnText');
   btn.disabled = true;
   btn.classList.add('loading');
@@ -557,34 +1217,50 @@ async function doCheckin() {
     btn.classList.remove('loading');
 
     if (data.ok) {
-      // 成功
-      btn.innerHTML = '<i class="fa-solid fa-check"></i><span>签到成功</span>';
+      btn.innerHTML = '<span class="symbol">✓</span><span>签到成功</span>';
       const tip = document.getElementById('statusTip');
       tip.textContent = `🎉 获得 +${data.reward} ${data.unit}，累计 ${data.total} ${data.unit}`;
       tip.className = 'status-tip success';
-      // 更新积分显示
-      document.getElementById('creditsVal').textContent = data.total;
+      if (_checkinStatus) _checkinStatus.checked = true;
+      if (data.overview) {
+        renderCheckinOverview(data.overview);
+        if ((_recordsMonth || data.overview.month) === data.overview.month) {
+          _recordsOverview = data.overview;
+          if (document.getElementById('recordsOverlay').classList.contains('show')) {
+            renderRecords(data.overview);
+          }
+        }
+      } else {
+        const overview = await loadCheckinOverview();
+        renderCheckinOverview(overview);
+      }
       showToast(data.msg || '签到成功！', 'ok', 4000);
       launchConfetti();
-      // Telegram 触感反馈
       try { twa.HapticFeedback.notificationOccurred('success'); } catch {}
     } else if (data.already) {
       setCheckedState();
+      const overview = await loadCheckinOverview();
+      renderCheckinOverview(overview);
+      if ((_recordsMonth || overview.month) === overview.month) {
+        _recordsOverview = overview;
+        if (document.getElementById('recordsOverlay').classList.contains('show')) {
+          renderRecords(overview);
+        }
+      }
       showToast(data.msg, 'info');
     } else {
       btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-calendar-check"></i><span>立即签到</span>';
+      btn.innerHTML = '<span class="symbol">✦</span><span>立即签到</span>';
       showToast(data.msg || '签到失败，请重试', 'err');
     }
   } catch {
     btn.disabled = false;
     btn.classList.remove('loading');
-    btn.innerHTML = '<i class="fa-solid fa-calendar-check"></i><span>立即签到</span>';
+    btn.innerHTML = '<span class="symbol">✦</span><span>立即签到</span>';
     showToast('网络错误，请稍后重试', 'err');
   }
 }
 
-// 启动
 init();
 </script>
 </body>

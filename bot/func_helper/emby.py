@@ -110,8 +110,8 @@ class Embyservice(metaclass=Singleton):
             'accept': 'application/json',
             'content-type': 'application/json',
             'X-Emby-Token': self.api_key,
-            'X-Emby-Client': 'Sakura BOT',
-            'X-Emby-Device-Name': 'Sakura BOT',
+            'X-Emby-Client': 'DPeakEmby BOT',
+            'X-Emby-Device-Name': 'DPeakEmby BOT',
             'X-Emby-Client-Version': '1.0.0',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.82'
         }
@@ -618,20 +618,21 @@ class Embyservice(metaclass=Singleton):
         """
         try:
             LOGGER.info(f"开始终止会话: {session_id} - {reason}")
-            
-            # 停止播放
-            stop_result = await self._request('POST', f'/emby/Sessions/{session_id}/Playing/Stop')
-            
-            # 发送消息给客户端
-            message_data = {
-                "Text": f"🚫 会话已被终止: {reason}",
-                "Header": "安全警告",
-                "TimeoutMs": 10000
+
+            # 先尝试弹出系统提示，再强制停播。
+            command_data = {
+                "Name": "DisplayMessage",
+                "Arguments": {
+                    "Header": "安全警告",
+                    "Text": f"🚫 会话已被终止: {reason}",
+                    "TimeoutMs": "10000",
+                }
             }
-            message_result = await self._request('POST', f'/emby/Sessions/{session_id}/Message', json=message_data)
-            
+            command_result = await self._request('POST', f'/emby/Sessions/{session_id}/Command', json=command_data)
+            stop_result = await self._request('POST', f'/emby/Sessions/{session_id}/Playing/Stop')
+
             # 只要有一个操作成功就认为成功
-            if stop_result.success or message_result.success:
+            if stop_result.success or command_result.success:
                 LOGGER.info(f"成功终止会话: {session_id}")
                 return True
             else:
@@ -640,6 +641,25 @@ class Embyservice(metaclass=Singleton):
                 
         except Exception as e:
             LOGGER.error(f"终止会话异常: {session_id} - {str(e)}")
+            return False
+
+    async def delete_device(self, device_id: str) -> bool:
+        """
+        删除指定设备的登录态，迫使设备重新认证
+        :param device_id: 设备ID
+        :return: 是否成功
+        """
+        try:
+            if not device_id:
+                return False
+            result = await self._request('DELETE', f'/emby/Devices?Id={device_id}')
+            if result.success:
+                LOGGER.info(f"成功删除设备登录态: {device_id}")
+                return True
+            LOGGER.error(f"删除设备登录态失败: {device_id} - {result.error}")
+            return False
+        except Exception as e:
+            LOGGER.error(f"删除设备登录态异常: {device_id} - {str(e)}")
             return False
 
     async def emby_change_policy(self, emby_id: str, admin: bool = False, disable: bool = False) -> bool:

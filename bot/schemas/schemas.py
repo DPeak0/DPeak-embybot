@@ -68,6 +68,7 @@ class Open(BaseModel):
     request_quota_b: int = 10
     request_quota_e: int = 5
     request_quota_days: int = 30
+    request_credit_cost: int = 0
 
     # 每次创建 Open 对象时被重置为 0
     def __init__(self, **data):
@@ -76,7 +77,7 @@ class Open(BaseModel):
 
 
 class Ranks(BaseModel):
-    logo: str = "SAKURA"
+    logo: str = "DPeakEmby"
     backdrop: bool = False
 
 
@@ -217,6 +218,10 @@ class Config(BaseModel):
     # MiniApp 配置
     miniapp_url: Optional[str] = ""       # MiniApp 对外 HTTPS 地址，如 https://your.domain.com
     tmdb_api_key: Optional[str] = ""      # TMDB v3 API Key，用于求片搜索
+    hdhive_base_url: Optional[str] = "https://hdhive.com"
+    hdhive_api_key: Optional[str] = "1d1a58d25cd7ccfec8e3da685e45821a"
+    cms_base_url: Optional[str] = "https://cms.dpeak.cn"
+    cms_api_token: Optional[str] = ""
     # 命令显示/权限覆盖（key=命令名, value=CmdOverride）
     cmd_overrides: Optional[Dict[str, CmdOverride]] = Field(default_factory=dict)
     # 修仙游戏配置（由 Admin 后台写入，游戏模块读取）

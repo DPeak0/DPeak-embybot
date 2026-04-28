@@ -142,7 +142,7 @@ def sql_get_requests_status_map(tg: int) -> dict:
 
 
 def sql_get_pending_requests() -> List[MiniAppRequest]:
-    """获取所有待处理且未通知的求片申请（供 webhook 触发检查使用）"""
+    """获取所有待处理且未通知的求片申请（兼容旧逻辑）"""
     with Session() as session:
         try:
             rows = session.query(MiniAppRequest).filter(
@@ -152,6 +152,54 @@ def sql_get_pending_requests() -> List[MiniAppRequest]:
             return rows
         except Exception as e:
             LOGGER.error(f"【MiniApp】查询待处理申请失败: {e}")
+            return []
+
+
+def sql_get_incomplete_requests() -> List[MiniAppRequest]:
+    """获取所有未完成的求片申请，真实状态同步时使用。"""
+    with Session() as session:
+        try:
+            rows = session.query(MiniAppRequest).filter(
+                MiniAppRequest.status.in_(['pending', 'processing', 'rejected'])
+            ).all()
+            return rows
+        except Exception as e:
+            LOGGER.error(f"【MiniApp】查询未完成申请失败: {e}")
+            return []
+
+
+def sql_get_pending_requests_by_tmdb_ids(tmdb_ids: List[str]) -> List[MiniAppRequest]:
+    """按 TMDB ID 获取待处理申请（用于页面实时同步已入库状态）"""
+    normalized_ids = [str(i).strip() for i in (tmdb_ids or []) if str(i).strip()]
+    if not normalized_ids:
+        return []
+    with Session() as session:
+        try:
+            rows = session.query(MiniAppRequest).filter(
+                MiniAppRequest.tmdb_id.in_(normalized_ids),
+                MiniAppRequest.status.in_(['pending', 'processing']),
+                MiniAppRequest.notified == 0,
+            ).all()
+            return rows
+        except Exception as e:
+            LOGGER.error(f"【MiniApp】按TMDB查询待处理申请失败: {e}")
+            return []
+
+
+def sql_get_incomplete_requests_by_tmdb_ids(tmdb_ids: List[str]) -> List[MiniAppRequest]:
+    """按 TMDB ID 获取所有未完成申请，若 Emby 已入库则统一矫正为 completed。"""
+    normalized_ids = [str(i).strip() for i in (tmdb_ids or []) if str(i).strip()]
+    if not normalized_ids:
+        return []
+    with Session() as session:
+        try:
+            rows = session.query(MiniAppRequest).filter(
+                MiniAppRequest.tmdb_id.in_(normalized_ids),
+                MiniAppRequest.status.in_(['pending', 'processing', 'rejected']),
+            ).all()
+            return rows
+        except Exception as e:
+            LOGGER.error(f"【MiniApp】按TMDB查询未完成申请失败: {e}")
             return []
 
 
@@ -248,6 +296,8 @@ def sql_update_request_status(request_id: int, status: str,
                 req.note = note
             if status in ('completed', 'rejected'):
                 req.notified = 1
+            elif status in ('pending', 'processing'):
+                req.notified = 0
             session.commit()
             session.refresh(req)
             return req
@@ -267,6 +317,10 @@ def sql_update_request(request_id: int, status: Optional[str] = None,
                 return None
             if status is not None:
                 req.status = status
+                if status in ('completed', 'rejected'):
+                    req.notified = 1
+                elif status in ('pending', 'processing'):
+                    req.notified = 0
             if note is not None:
                 req.note = note
             req.updated_at = datetime.now()

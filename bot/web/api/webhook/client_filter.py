@@ -4,13 +4,15 @@ from bot import LOGGER, bot, config
 from bot.func_helper.emby import emby
 import json
 import re
-from typing import List
+from typing import Dict, List
 from datetime import datetime
 
 router = APIRouter()
 
 # 默认的被拦截的客户端模式列表
 DEFAULT_BLOCKED_CLIENTS = [
+    r".*网易爆米花.*",
+    r".*netease.*popcorn.*",
     r".*curl.*",
     r".*wget.*",
     r".*python.*",
@@ -54,6 +56,66 @@ async def is_client_blocked(client: str) -> bool:
             continue
 
     return False
+
+
+def _normalize_event_name(event: str) -> str:
+    return str(event or "").strip().lower()
+
+
+def _extract_client_context(webhook_data: dict) -> Dict[str, str]:
+    """尽可能兼容不同 webhook 负载结构，提取客户端与用户上下文。"""
+    session_info = webhook_data.get("Session")
+    if not isinstance(session_info, dict):
+        session_info = {}
+
+    user_info = webhook_data.get("User")
+    if not isinstance(user_info, dict):
+        user_info = {}
+
+    candidates = []
+    for value in [
+        session_info.get("Client"),
+        webhook_data.get("Client"),
+        webhook_data.get("AppName"),
+        session_info.get("DeviceName"),
+        webhook_data.get("DeviceName"),
+        session_info.get("UserAgent"),
+        webhook_data.get("UserAgent"),
+    ]:
+        normalized = str(value or "").strip()
+        if normalized and normalized not in candidates:
+            candidates.append(normalized)
+
+    detection_text = " | ".join(candidates)
+    client_name = candidates[0] if candidates else ""
+
+    return {
+        "event": _normalize_event_name(webhook_data.get("Event", "")),
+        "user_name": str(
+            user_info.get("Name")
+            or session_info.get("UserName")
+            or webhook_data.get("UserName")
+            or ""
+        ).strip(),
+        "emby_id": str(
+            user_info.get("Id")
+            or session_info.get("UserId")
+            or webhook_data.get("UserId")
+            or ""
+        ).strip(),
+        "session_id": str(
+            session_info.get("Id")
+            or webhook_data.get("SessionId")
+            or ""
+        ).strip(),
+        "device_id": str(
+            session_info.get("DeviceId")
+            or webhook_data.get("DeviceId")
+            or ""
+        ).strip(),
+        "client_name": client_name,
+        "detection_text": detection_text,
+    }
 
 
 async def log_blocked_request(
@@ -107,6 +169,22 @@ async def terminate_blocked_session(session_id: str, client_name: str) -> bool:
         return False
 
 
+async def revoke_blocked_device(device_id: str, client_name: str) -> bool:
+    """删除违规设备登录态，防止客户端立即复用旧 token 重连。"""
+    try:
+        if not device_id:
+            return False
+        success = await emby.delete_device(device_id)
+        if success:
+            LOGGER.info(f"成功移除违规设备登录态 {device_id} ({client_name})")
+        else:
+            LOGGER.error(f"移除违规设备登录态失败 {device_id} ({client_name})")
+        return success
+    except Exception as e:
+        LOGGER.error(f"移除违规设备登录态异常 {device_id}: {str(e)}")
+        return False
+
+
 @router.post("/webhook/client-filter")
 async def handle_client_filter_webhook(request: Request):
     """处理Emby用户代理拦截webhook"""
@@ -126,8 +204,8 @@ async def handle_client_filter_webhook(request: Request):
         if not webhook_data:
             return {"status": "error", "message": "No data received"}
 
-        # 获取事件类型
-        event = webhook_data.get("Event", "")
+        ctx = _extract_client_context(webhook_data)
+        event = ctx["event"]
 
         # 只处理播放相关事件
         if event not in [
@@ -137,6 +215,7 @@ async def handle_client_filter_webhook(request: Request):
             "playback.progress",
             "playback.stop",
             "session.start",
+            "session.created",
         ]:
             return {
                 "status": "ignored",
@@ -144,28 +223,32 @@ async def handle_client_filter_webhook(request: Request):
                 "event": event,
             }
 
-        # 获取会话信息
-        session_info = webhook_data.get("Session", {})
-        user_info = webhook_data.get("User", {})
-        user_name = user_info.get("Name", "")
-        emby_id = user_info.get("Id", "")
-        session_id = session_info.get("Id", "")
-        client_name = session_info.get("Client", "")
+        user_name = ctx["user_name"]
+        emby_id = ctx["emby_id"]
+        session_id = ctx["session_id"]
+        device_id = ctx["device_id"]
+        client_name = ctx["client_name"]
+        detection_text = ctx["detection_text"]
 
-        if not client_name:
-            return {"status": "ignored", "message": "No Client info found"}
+        if not detection_text:
+            return {"status": "ignored", "message": "No Client info found", "event": event}
 
         # 检查Client是否被拦截
-        is_blocked = await is_client_blocked(client_name)
+        is_blocked = await is_client_blocked(detection_text)
 
         if is_blocked:
             # 根据配置决定是否终止会话
+            terminated = False
+            revoked = False
             if getattr(config, "client_filter_terminate_session", True):
-                await terminate_blocked_session(session_id, client_name)
+                if session_id:
+                    terminated = await terminate_blocked_session(session_id, client_name or detection_text)
+                if device_id:
+                    revoked = await revoke_blocked_device(device_id, client_name or detection_text)
             block_success = False
 
-            user_details = sql_get_emby(emby_id)
-            if getattr(config, "client_filter_block_user", False):
+            user_details = sql_get_emby(emby_id) if emby_id else None
+            if getattr(config, "client_filter_block_user", False) and emby_id:
                 block_success = await emby.emby_change_policy(emby_id=emby_id, disable=True)
                 if block_success:
                     if user_details:
@@ -176,7 +259,7 @@ async def handle_client_filter_webhook(request: Request):
                 user_id=emby_id,
                 user_name=user_name,
                 session_id=session_id,
-                client_name=client_name,
+                client_name=detection_text,
                 tg_id=user_details.tg if user_details else None,
                 block_success=block_success,
             )
@@ -188,8 +271,16 @@ async def handle_client_filter_webhook(request: Request):
                     "user_id": emby_id,
                     "user_name": user_name,
                     "session_id": session_id,
-                    "client_name": client_name,
-                    "user_details": user_details,
+                    "device_id": device_id,
+                    "client_name": client_name or detection_text,
+                    "matched_text": detection_text,
+                    "terminated": terminated,
+                    "revoked": revoked,
+                    "user_details": {
+                        "tg": user_details.tg,
+                        "embyid": user_details.embyid,
+                        "name": user_details.name,
+                    } if user_details else None,
                     "event": event,
                     "timestamp": datetime.now().isoformat(),
                 },

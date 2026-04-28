@@ -1,9 +1,17 @@
 # 第一阶段：安装依赖
 FROM python:3.10.11-alpine AS builder
 
-RUN apk add --no-cache --virtual .build-deps \
-    gcc musl-dev openssl-dev libffi-dev jpeg-dev zlib-dev freetype-dev \
-    mariadb-connector-c-dev coreutils
+RUN set -eux; \
+    retry_count=0; \
+    until apk add --no-cache --virtual .build-deps \
+        gcc musl-dev openssl-dev libffi-dev jpeg-dev zlib-dev freetype-dev \
+        mariadb-connector-c-dev coreutils; do \
+        retry_count=$((retry_count + 1)); \
+        if [ "$retry_count" -ge 3 ]; then \
+            exit 1; \
+        fi; \
+        sleep $((retry_count * 5)); \
+    done
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -18,13 +26,21 @@ ENV TZ=Asia/Shanghai \
     DOCKER_MODE=1 \
     PYTHONUNBUFFERED=1
 
-RUN apk add --no-cache \
-    mariadb-connector-c \
-    tzdata \
-    jpeg \
-    freetype \
-    libstdc++ && \
-    ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+RUN set -eux; \
+    retry_count=0; \
+    until apk add --no-cache \
+        mariadb-connector-c \
+        tzdata \
+        jpeg \
+        freetype \
+        libstdc++; do \
+        retry_count=$((retry_count + 1)); \
+        if [ "$retry_count" -ge 3 ]; then \
+            exit 1; \
+        fi; \
+        sleep $((retry_count * 5)); \
+    done; \
+    ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime; \
     echo Asia/Shanghai > /etc/timezone
 
 WORKDIR /app

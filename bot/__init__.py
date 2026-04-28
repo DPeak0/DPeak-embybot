@@ -76,7 +76,7 @@ from pyrogram.types import BotCommand
 
 '''定义不同等级的人使用不同命令'''
 user_p = [
-    BotCommand("start", "[私聊] 开启用户面板"),
+    BotCommand("start", "[私聊] 开启账号管理"),
     BotCommand("myinfo", "[用户] 查看状态"),
     BotCommand("count", "[用户] 媒体库数量"),
     BotCommand("red", "[用户/禁言] 发红包"),

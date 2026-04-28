@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from bot import config, save_config, LOGGER
+from bot.schemas.schemas import API, Ranks
 from bot.sql_helper.sql_audit import log_audit
 from .auth import require_admin
 
@@ -24,6 +25,7 @@ _OPEN_INT_FIELDS = {
     "all_user_b", "all_user_e", "all_user_a",
     "exchange_cost", "whitelist_cost", "invite_cost", "srank_cost",
     "request_quota_a", "request_quota_b", "request_quota_e", "request_quota_days",
+    "request_credit_cost",
 }
 # 保存到 config.open 的字符串字段
 _OPEN_STR_FIELDS = {"checkin_lv", "invite_lv"}
@@ -36,6 +38,11 @@ _SCHEDALL_BOOL_FIELDS = {
     "schedall_backup_db", "schedall_partition_check",
 }
 
+# 保存到 config.api 的字段（前缀 api_）
+_API_BOOL_FIELDS = {"api_status"}
+_API_INT_FIELDS = {"api_http_port"}
+_API_STR_FIELDS = {"api_http_url", "api_allow_origins"}
+
 # 顶层布尔字段
 _TOP_BOOL_FIELDS = {
     "fuxx_pitao", "client_filter_terminate_session", "client_filter_block_user",
@@ -45,19 +52,25 @@ _TOP_INT_FIELDS = {"kk_gift_days", "activity_check_days", "freeze_days"}
 # 顶层字符串字段（直接 setattr）
 _TOP_STR_FIELDS = {
     "money", "bot_photo", "emby_url", "emby_line", "emby_whitelist_line",
-    "miniapp_url", "tmdb_api_key", "ranks_logo",
+    "miniapp_url", "tmdb_api_key", "hdhive_base_url", "hdhive_api_key",
+    "cms_base_url", "cms_api_token", "ranks_logo",
 }
 
 # 所有允许修改的字段（白名单）
 _EDITABLE_FIELDS = (
     _OPEN_BOOL_FIELDS | _OPEN_INT_FIELDS | _OPEN_STR_FIELDS
     | _SCHEDALL_BOOL_FIELDS
+    | _API_BOOL_FIELDS | _API_INT_FIELDS | _API_STR_FIELDS
     | _TOP_BOOL_FIELDS | _TOP_INT_FIELDS | _TOP_STR_FIELDS
 )
 
 
 def _safe_config() -> dict:
     """返回安全的配置字段（不含密钥/密码）"""
+    if not getattr(config, "api", None):
+        config.api = API()
+    if not getattr(config, "ranks", None):
+        config.ranks = Ranks()
     cr = getattr(config.open, "checkin_reward", [1, 10]) or [1, 10]
     return {
         # ── Bot 基础 ───────────────────────────────────────────
@@ -71,6 +84,15 @@ def _safe_config() -> dict:
         # ── MiniApp / TMDB ─────────────────────────────────────
         "miniapp_url": config.miniapp_url or "",
         "tmdb_api_key": config.tmdb_api_key or "",
+        # ── API 设置 ───────────────────────────────────────────
+        "api_status": getattr(config.api, "status", False),
+        "api_http_url": getattr(config.api, "http_url", "0.0.0.0"),
+        "api_http_port": getattr(config.api, "http_port", 8838),
+        "api_allow_origins": ", ".join(getattr(config.api, "allow_origins", ["*"]) or ["*"]),
+        "hdhive_base_url": getattr(config, "hdhive_base_url", "https://hdhive.com") or "https://hdhive.com",
+        "hdhive_api_key": getattr(config, "hdhive_api_key", "") or "",
+        "cms_base_url": getattr(config, "cms_base_url", "https://cms.dpeak.cn") or "https://cms.dpeak.cn",
+        "cms_api_token": getattr(config, "cms_api_token", "") or "",
         # ── 注册设置 ───────────────────────────────────────────
         "stat": getattr(config.open, "stat", False),
         "all_user": getattr(config.open, "all_user", 0),
@@ -104,6 +126,7 @@ def _safe_config() -> dict:
         "request_quota_b": getattr(config.open, "request_quota_b", 10),
         "request_quota_e": getattr(config.open, "request_quota_e", 5),
         "request_quota_days": getattr(config.open, "request_quota_days", 30),
+        "request_credit_cost": getattr(config.open, "request_credit_cost", 0),
         # ── 计划任务 ───────────────────────────────────────────
         "schedall_check_ex": getattr(config.schedall, "check_ex", True),
         "schedall_low_activity": getattr(config.schedall, "low_activity", False),
@@ -117,7 +140,7 @@ def _safe_config() -> dict:
         "client_filter_terminate_session": getattr(config, "client_filter_terminate_session", True),
         "client_filter_block_user": getattr(config, "client_filter_block_user", False),
         # ── Ranks ──────────────────────────────────────────────
-        "ranks_logo": config.ranks.logo if hasattr(config, "ranks") and config.ranks else "SAKURA",
+        "ranks_logo": config.ranks.logo if hasattr(config, "ranks") and config.ranks else "DPeakEmby",
     }
 
 
@@ -133,9 +156,15 @@ async def save_settings(request: Request, admin=Depends(require_admin)):
     except Exception:
         return JSONResponse({"ok": False, "msg": "请求体解析失败"}, status_code=400)
 
+    if not getattr(config, "api", None):
+        config.api = API()
+    if not getattr(config, "ranks", None):
+        config.ranks = Ranks()
+
     updated = []
     before_parts = []
     after_parts = []
+    invalid = []
 
     for key, value in body.items():
         if key not in _EDITABLE_FIELDS:
@@ -158,6 +187,28 @@ async def save_settings(request: Request, admin=Depends(require_admin)):
                 old_val = getattr(config.schedall, attr, None)
                 new_val = bool(value)
                 setattr(config.schedall, attr, new_val)
+            elif key in _API_BOOL_FIELDS:
+                attr = key[len("api_"):]
+                old_val = getattr(config.api, attr, None)
+                new_val = bool(value)
+                setattr(config.api, attr, new_val)
+            elif key in _API_INT_FIELDS:
+                attr = key[len("api_"):]
+                old_val = getattr(config.api, attr, None)
+                new_val = int(value)
+                setattr(config.api, attr, new_val)
+            elif key in _API_STR_FIELDS:
+                attr = key[len("api_"):]
+                old_val = getattr(config.api, attr, None)
+                if key == "api_allow_origins":
+                    raw = str(value or "").strip()
+                    if not raw or raw == "*":
+                        new_val = ["*"]
+                    else:
+                        new_val = [item.strip() for item in raw.replace("\n", ",").split(",") if item.strip()]
+                else:
+                    new_val = str(value)
+                setattr(config.api, attr, new_val)
             elif key in _TOP_BOOL_FIELDS:
                 old_val = getattr(config, key, None)
                 new_val = bool(value)
@@ -178,6 +229,7 @@ async def save_settings(request: Request, admin=Depends(require_admin)):
             before_parts.append(f"{key}={old_val}")
             after_parts.append(f"{key}={new_val}")
         except Exception as e:
+            invalid.append(key)
             LOGGER.warning(f"【Admin】设置字段 {key} 失败: {e}")
 
     # 特殊处理 checkin_reward（两个字段合并为 list）
@@ -195,7 +247,9 @@ async def save_settings(request: Request, admin=Depends(require_admin)):
             LOGGER.warning(f"【Admin】设置 checkin_reward 失败: {e}")
 
     if not updated:
-        return JSONResponse({"ok": False, "msg": "没有可更新的字段"})
+        if invalid:
+            return JSONResponse({"ok": False, "msg": f"以下字段保存失败: {', '.join(invalid)}", "settings": _safe_config()})
+        return JSONResponse({"ok": False, "msg": "没有可更新的字段", "settings": _safe_config()})
 
     try:
         save_config()

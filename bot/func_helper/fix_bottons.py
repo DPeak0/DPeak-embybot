@@ -27,7 +27,7 @@ def judge_start_ikb(is_admin: bool, account: bool) -> InlineKeyboardMarkup:
         if _open.invite_lv == 'd':
             d.append(['🏪 兑换商店', 'storeall'])
     else:
-        d = [['️👥 用户功能', 'members'], ['🌐 服务器', 'server']]
+        d = [['️👥 账号管理', 'members'], ['🌐 服务器', 'server']]
         if schedall.check_ex:
             d.append(['🎟️ 使用续期码', 'exchange'])
         if schedall.partition_check and len(config.partition_libs) > 0:
@@ -43,7 +43,7 @@ def judge_start_ikb(is_admin: bool, account: bool) -> InlineKeyboardMarkup:
     # 如果配置了 miniapp_url，在底部追加 WebApp 按钮行
     if miniapp_url:
         base = miniapp_url.rstrip('/')
-        row = [InlineKeyboardButton("🌟 用户中心", web_app=WebAppInfo(url=f"{base}/miniapp/"))]
+        row = [InlineKeyboardButton("🌟 求片中心", web_app=WebAppInfo(url=f"{base}/miniapp/"))]
         if _open.checkin:
             row.append(InlineKeyboardButton("🎯 签到", web_app=WebAppInfo(url=f"{base}/miniapp/checkin_app")))
         keyboard.inline_keyboard.append(row)
@@ -84,9 +84,9 @@ def members_ikb(is_admin: bool = False, account: bool = False) -> InlineKeyboard
 back_start_ikb = ikb([[('💫 回到首页', 'back_start')]])
 back_members_ikb = ikb([[('💨 返回', 'members')]])
 back_manage_ikb = ikb([[('💨 返回', 'manage')]])
-re_create_ikb = ikb([[('🍥 重新输入', 'create'), ('💫 用户主页', 'members')]])
-re_changetg_ikb = ikb([[('✨ 换绑TG', 'changetg'), ('💫 用户主页', 'members')]])
-re_bindtg_ikb = ikb([[('✨ 绑定TG', 'bindtg'), ('💫 用户主页', 'members')]])
+re_create_ikb = ikb([[('🍥 重新输入', 'create'), ('💫 账号管理', 'members')]])
+re_changetg_ikb = ikb([[('✨ 换绑TG', 'changetg'), ('💫 账号管理', 'members')]])
+re_bindtg_ikb = ikb([[('✨ 绑定TG', 'bindtg'), ('💫 账号管理', 'members')]])
 re_delme_ikb = ikb([[('♻️ 重试', 'delme')], [('🔙 返回', 'members')]])
 re_reset_ikb = ikb([[('♻️ 重试', 'reset')], [('🔙 返回', 'members')]])
 re_exchange_b_ikb = ikb([[('♻️ 重试', 'exchange'), ('❌ 关闭', 'closeit')]])
@@ -133,12 +133,12 @@ async def cr_page_server():
     """
     sever = await nezha_res.sever_info(tz_ad, tz_api, tz_id, tz_version, tz_username, tz_password)
     if not sever:
-        return ikb([[('🔙 - 用户', 'members'), ('❌ - 上一级', 'back_start')]]), None
+        return ikb([[('🔙 - 账号', 'members'), ('❌ - 上一级', 'back_start')]]), None
     d = []
     for i in sever:
         d.append([i['name'], f'server:{i["id"]}'])
     lines = array_chunk(d, 3)
-    lines.append([['🔙 - 用户', 'members'], ['❌ - 上一级', 'back_start']])
+    lines.append([['🔙 - 账号', 'members'], ['❌ - 上一级', 'back_start']])
     # keyboard是键盘，a是sever
     return ikb(lines), sever
 

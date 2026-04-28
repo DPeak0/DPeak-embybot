@@ -132,10 +132,10 @@ async def members(_, call):
     data = await members_info(tg=call.from_user.id)
     if not data:
         return await callAnswer(call, '⚠️ 数据库没有你，请重新 /start录入', True)
-    await callAnswer(call, f"✅ 用户界面")
+    await callAnswer(call, f"✅ 账号管理")
     name, lv, ex, iv, embyid, pwd2, raw_lv = data
     level_label = {'a': '♾️ 白名单', 'b': '🔵 普通用户', 'c': '🔴 已封禁', 'e': '🟢 公益用户', 'd': '未注册'}.get(raw_lv, raw_lv)
-    text = f"▎__欢迎进入用户面板！{call.from_user.first_name}__\n\n" \
+    text = f"▎__欢迎进入账号管理！{call.from_user.first_name}__\n\n" \
            f"**· 🆔 用户のID** | `{call.from_user.id}`\n" \
            f"**· 📊 当前状态** | {lv}\n" \
            f"**· 🏷️ 账号等级** | {level_label}\n" \

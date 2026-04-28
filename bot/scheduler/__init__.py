@@ -8,3 +8,4 @@ from .sync_favorites import sync_favorites
 from .sync_mp_download import sync_download_tasks
 from .partition_access import check_partition_access
 from .check_miniapp_requests import check_miniapp_requests
+from .prewarm_tmdb_cache import scheduled_prewarm_tmdb_cache
